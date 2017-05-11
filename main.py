@@ -1,0 +1,39 @@
+class Voter:
+    def __init__(self):
+        self.preferences = {1: 'a', 2:'b', 3:'c'}
+
+    def get(self, number):
+        return self.preferences[number]
+
+
+class Grid:
+    def __init__(self, size):
+        self.size = size
+        self.grid = {}
+        for x in range(size):
+            self.grid[x] = {} 
+            for y in range(size):
+                self.grid[x][y] = Voter()
+
+    def profile(self):
+        profile = []
+        for x in range(self.size):
+            for y in range(self.size):
+                profile.append(self.grid[x][y])
+        return profile
+
+def rule_plurality(profile):
+    score = {};
+    score['a'] = score['b'] = score['c'] = 0;
+    for voter in profile:
+        score[voter.get(1)] += 1;
+
+    # return max
+    print(score)
+
+def main():
+    grid = Grid(5)
+    rule_plurality(grid.profile())
+
+if __name__ == "__main__":
+    main()
