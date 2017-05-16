@@ -22,6 +22,7 @@ class Grid:
                 profile.append(self.grid[x][y])
         return profile
 
+
 def rule_plurality(profile):
     score = {};
     score['a'] = score['b'] = score['c'] = 0;
@@ -29,11 +30,15 @@ def rule_plurality(profile):
         score[voter.get(1)] += 1;
 
     # return max
-    print(score)
+    return score
+
 
 def main():
     grid = Grid(5)
-    rule_plurality(grid.profile())
+    score_plur = rule_plurality(grid.profile())
+
+    print(score_plur)
+
 
 if __name__ == "__main__":
     main()
