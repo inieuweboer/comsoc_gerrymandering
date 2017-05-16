@@ -12,11 +12,7 @@ class Voter:
 
     def get_pref(self):
         prefList = ['a','b','c']
-<<<<<<< HEAD
         shuffle(prefList)   
-=======
-        shuffle(prefList)
->>>>>>> origin/master
         return {1: prefList[0], 2: prefList[1], 3: prefList[2]}
 
 class Grid:
@@ -24,11 +20,7 @@ class Grid:
         self.size = size
         self.grid = {}
         for x in range(size):
-<<<<<<< HEAD
-            self.grid[x] = {} 
-=======
             self.grid[x] = {}
->>>>>>> origin/master
             for y in range(size):
                 self.grid[x][y] = Voter()
 
@@ -37,10 +29,6 @@ class Grid:
         for x in range(self.size):
             for y in range(self.size):
                 profile.append(self.grid[x][y])
-<<<<<<< HEAD
-        return profile
-=======
-
         return profile
 
     def divide_equal_districts(self, no_distrs):
@@ -66,18 +54,12 @@ class District:
 
     def __str__(self):
         return str(self.grid_points)
->>>>>>> origin/master
 
 
 def rule_plurality(profile):
     score = {};
     score['a'] = score['b'] = score['c'] = 0;
     for voter in profile:
-<<<<<<< HEAD
-        score[voter.get(1)] += 1;
-
-    # return max
-=======
     	score[voter.get(1)] += 1;
 
     # return max
@@ -90,19 +72,10 @@ def rule_borda(profile):
     for voter in profile:
         score[voter.preferences(1)] += 2
         score[voter.preferences(2)] += 1
-
->>>>>>> origin/master
     return score
 
 
 def main():
-<<<<<<< HEAD
-    grid = Grid(5)
-    score_plur = rule_plurality(grid.profile())
-    for voter in grid.profile():
-        print voter.get(1)+voter.get(2)+voter.get(3)
-    print(score_plur)
-=======
     grid = Grid(12)
     score_plur = rule_plurality(grid.profile())
 
@@ -117,7 +90,6 @@ def main():
     grid.divide_equal_districts(4)
     for distr in grid.districts:
         print(distr)
->>>>>>> origin/master
 
 
 if __name__ == "__main__":
