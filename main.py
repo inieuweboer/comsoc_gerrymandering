@@ -1,13 +1,19 @@
+import random
 from math import sqrt
 from itertools import product
+from random import shuffle
 
 class Voter:
-    def __init__(self):
-        self.preferences = {1: 'a', 2:'b', 3:'c'}
+	def __init__(self):
+		self.preferences = self.get_pref()
 
-    def get(self, number):
-        return self.preferences[number]
+	def get(self, number):
+		return self.preferences[number]
 
+	def get_pref(self):
+		prefList = ['a','b','c']
+		shuffle(prefList)
+		return {1: prefList[0], 2: prefList[1], 3: prefList[2]}
 
 class Grid:
     def __init__(self, size):
@@ -52,13 +58,13 @@ class District:
 
 
 def rule_plurality(profile):
-    score = {};
-    score['a'] = score['b'] = score['c'] = 0;
-    for voter in profile:
-        score[voter.get(1)] += 1;
+	score = {};
+	score['a'] = score['b'] = score['c'] = 0;
+	for voter in profile:
+		score[voter.get(1)] += 1;
 
-    # return max
-    return score
+	# return max
+	return score
 
 
 def rule_borda(profile):
@@ -75,12 +81,29 @@ def main():
     grid = Grid(12)
     score_plur = rule_plurality(grid.profile())
 
+    score_plur = rule_plurality(grid.profile())
+    print('voter preferences:')
+    for voter in grid.profile():
+        print voter.get(1)+voter.get(2)+voter.get(3)
+
     print(score_plur)
 
+    print('districts:')
     grid.divide_equal_districts(4)
     for distr in grid.districts:
         print(distr)
 
 
 if __name__ == "__main__":
-    main()
+	main()
+
+
+
+# _____BIN_____
+	# alternatives = ['a','b','c']
+	# prefList = []
+	# index = int(random.uniform(0, len(alternatives)))
+	# prefList.append(alternatives.pop(index))
+	# index = int(random.uniform(0, len(alternatives)))
+	# prefList.append(alternatives.pop(index))
+	# prefList.append(alternatives.pop(0)) 
