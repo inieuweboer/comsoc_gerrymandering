@@ -33,6 +33,16 @@ def rule_plurality(profile):
     return score
 
 
+def rule_borda(profile):
+    score = {}
+    score['a'] = score['b'] = score['c'] = 0
+    for voter in profile:
+        score[voter.preferences(1)] += 2
+        score[voter.preferences(2)] += 1
+
+    return score
+
+
 def main():
     grid = Grid(5)
     score_plur = rule_plurality(grid.profile())
