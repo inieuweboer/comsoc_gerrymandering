@@ -4,16 +4,16 @@ from itertools import product
 from random import shuffle
 
 class Voter:
-	def __init__(self):
-		self.preferences = self.get_pref()
+    def __init__(self):
+        self.preferences = self.get_pref()
 
-	def get(self, number):
-		return self.preferences[number]
+    def get(self, number):
+        return self.preferences[number]
 
-	def get_pref(self):
-		prefList = ['a','b','c']
-		shuffle(prefList)
-		return {1: prefList[0], 2: prefList[1], 3: prefList[2]}
+    def get_pref(self):
+        prefList = ['a','b','c']
+        shuffle(prefList)
+        return {1: prefList[0], 2: prefList[1], 3: prefList[2]}
 
 class Grid:
     def __init__(self, size):
@@ -58,13 +58,13 @@ class District:
 
 
 def rule_plurality(profile):
-	score = {};
-	score['a'] = score['b'] = score['c'] = 0;
-	for voter in profile:
-		score[voter.get(1)] += 1;
+    score = {};
+    score['a'] = score['b'] = score['c'] = 0;
+    for voter in profile:
+    	score[voter.get(1)] += 1;
 
-	# return max
-	return score
+    # return max
+    return score
 
 
 def rule_borda(profile):
@@ -95,7 +95,7 @@ def main():
 
 
 if __name__ == "__main__":
-	main()
+    main()
 
 
 
