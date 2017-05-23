@@ -23,7 +23,7 @@ class Voter:
 
     def get_hotspot_pref(self):
         prefList = ['a','b','c']
-        distances = [pow(self.grid.distance(self.position, hotspot),1) for hotspot in self.grid.hotspots]
+        distances = [pow(self.grid.distance(self.position, hotspot), 1) for hotspot in self.grid.hotspots]
         random_scores = np.array([random.uniform(0, distance) for distance in distances])
         ranks = random_scores.argsort()
         return {1: prefList[ranks[0]], 2: prefList[ranks[1]], 3: prefList[ranks[2]]}
@@ -40,7 +40,7 @@ class Grid:
                 self.grid[x][y] = Voter(self, (x,y))
 
     def hotspots(self):
-        min_distance = 3
+        min_distance = 4
         points = []
         hotspots = []
         for x in range(self.size):
@@ -70,7 +70,7 @@ class Grid:
             row = ""
             for y in range(self.size):
                 row += self.grid[x][y].get(1) + "  "
-            sys.stdout.write(row + "\n")   
+            sys.stdout.write(row + "\n")
 
     def divide_equal_districts(self, no_distrs):
         # Create a list of districts. The square that is nearest low to no_districts is used
