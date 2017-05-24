@@ -13,20 +13,21 @@ class Voter:
         self.x = x
         self.y = y
         # self.preferences = {1: 'a', 2:'b', 3:'c'}
-        self.preferences = self.get_hotspot_pref(2)
-        # self.preferences = self.get_random_pref()
+        # self.preferences = self.get_hotspot_pref(2)
+        self.preferences = self.get_random_pref([33,33,33])
 
-    def get_random_pref(self):
+    def get_random_pref(self, percentages=[33,33,33]):
         prefList = ['a','b','c']
-        shuffle(prefList)   
-        return {1: prefList[0], 2: prefList[1], 3: prefList[2]}
+        random_scores = np.array([random.uniform(0, percentage) for percentage in percentages]) 
+        ranks = random_scores.argsort()
+        return {1: prefList[ranks[2]], 2: prefList[ranks[1]], 3: prefList[ranks[0]]}
 
-    def get_hotspot_pref(self, power):
+    def get_hotspot_pref(self, power, percentages=[33,33,33]):
         prefList = ['a','b','c']
         distances = [pow(self.grid.distance((self.x, self.y), hotspot), power) for hotspot in self.grid.hotspots]
-        random_scores = np.array([random.uniform(0, distance) for distance in distances])
+        random_scores = np.array([random.uniform(0, distance * percentages[i]) for i, distance in enumerate(distances)])
         ranks = random_scores.argsort()
-        return {1: prefList[ranks[0]], 2: prefList[ranks[1]], 3: prefList[ranks[2]]}
+        return {1: prefList[ranks[2]], 2: prefList[ranks[1]], 3: prefList[ranks[0]]}
 
     def get(self, number):
         return self.preferences[number]
@@ -43,6 +44,26 @@ class Voter:
     def getY(self):
         return self.y
 
+class District:
+    def __init__(self, number):
+        self.number = number
+        self.voters = []
+        self.conquer = False
+
+    def addVoter(self, voter):
+        self.voters.append(voter)
+
+    def getVoters(self):
+        return self.voters
+
+    def getNumber(self):
+        return self.number
+
+    def setConquer(self, conquer):
+        self.conquer = conquer
+
+    def getPlurality(self, alternative):
+        return rule_plurality(self.voters)[alternative]
 
 class Grid:
     def __init__(self, size, districts):
@@ -50,10 +71,15 @@ class Grid:
         self.grid = {}
         self.hotspots = self.hotspots()
         self.districts = districts
+        self.dist_list = []
+        for i in range(districts):
+            self.dist_list.append(District(i))
         for x in range(size):
             self.grid[x] = {} 
             for y in range(size):
                 self.grid[x][y] = Voter(self, x, y)
+        self.init_districts()
+        self.plur_gerry()
 
     def profile(self):
         profile = []
@@ -95,6 +121,43 @@ class Grid:
         voters = self.profile()
         random.shuffle(voters)
         return voters
+
+    def init_districts(self):
+        div1, div2 = self.get_divisors()
+        x_dist = self.size / div2
+        y_dist = self.size / div1
+        for y in range(self.size):
+            for x in range(self.size):
+                dist = int(int(y / y_dist) * div2 + int(x / x_dist))
+                self.grid[x][y].setDistrict(dist)
+                self.dist_list[dist].addVoter(self.grid[x][y])
+
+    def get_divisors(self):
+        divisor = math.floor(math.sqrt(self.districts))
+        while self.districts % divisor != 0:
+            divisor -= 1
+        return divisor, self.districts / divisor
+
+    def plur_gerry(self):
+        points = rule_plurality(self.profile())['a']
+        points_to_win_a_dist = int(((self.size * self.size) / self.districts) / 3) + 1
+        dist_to_conquer = int(points / points_to_win_a_dist)
+        scores_in_dists = np.array([dist.getPlurality('a') for dist in self.dist_list])
+        ranks = scores_in_dists.argsort()[::-1]
+        for i in range(dist_to_conquer):
+            self.dist_list[ranks[i]].setConquer(True)
+        # for voter in self.dist_neighbours(self.dist_list[0]):
+        #     print voter.getX(), voter.getY()
+
+    def dist_neighbours(self, dist):
+        neighbours = []
+        options = [[0,-1],[-1,0],[1,0],[0,1]]
+        for voter in dist.getVoters():
+            for option in options:
+                maybe_neighbour = self.grid[(voter.getX()+option[0]) % self.size][(voter.getY()+option[1]) % self.size]
+                if maybe_neighbour.getDistrict() != dist.getNumber() and maybe_neighbour not in neighbours:
+                    neighbours.append(maybe_neighbour)
+        return neighbours
 
     def create_districts(self):
         num_assigned = 0
@@ -172,7 +235,7 @@ class Grid:
         # plt.matshow(image)
         # plt.show()
 
-        image = image.reshape((self.size, self.size))
+        image = image.reshape((self.size, self.size)).swapaxes(0,1)
         fig, ax = plt.subplots(1)
         for x in range(self.size):
             for y in range(self.size):
@@ -193,19 +256,17 @@ def rule_plurality(profile):
     score['a'] = score['b'] = score['c'] = 0;
     for voter in profile:
         score[voter.get(1)] += 1;
-
-    # return max
-    print(score)
+    return score
 
 def main():
-    grid = Grid(12, 4)
-    grid.create_districts()
+    grid = Grid(12, 6)
+    # grid.create_districts()
 
     print('hotspots:')
     print grid.hotspots
 
     print('plurality score:')
-    rule_plurality(grid.profile())
+    print rule_plurality(grid.profile())
 
     grid.print_map()
 
