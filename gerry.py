@@ -7,27 +7,30 @@ from random import shuffle
 
 
 class Voter:
-    def __init__(self, grid, x, y):
+    def __init__(self, grid, x, y, percentages, hot_on):
         self.grid = grid
         self.district = 0
         self.x = x
         self.y = y
-        # self.preferences = {1: 'a', 2:'b', 3:'c'}
-        # self.preferences = self.get_hotspot_pref(2)
-        self.preferences = self.get_random_pref([33,33,33])
+        self.percentages = percentages
+        self.hot_on = hot_on
+        if hot_on:
+            self.preferences = self.get_hotspot_pref(2, percentages)
+        else:
+            self.preferences = self.get_random_pref(percentages)
 
-    def get_random_pref(self, percentages=[33,33,33]):
+    def get_random_pref(self, percentages):
         prefList = ['a','b','c']
         random_scores = np.array([random.uniform(0, percentage) for percentage in percentages]) 
         ranks = random_scores.argsort()
         return {1: prefList[ranks[2]], 2: prefList[ranks[1]], 3: prefList[ranks[0]]}
 
-    def get_hotspot_pref(self, power, percentages=[33,33,33]):
+    def get_hotspot_pref(self, power, percentages):
         prefList = ['a','b','c']
         distances = [pow(self.grid.distance((self.x, self.y), hotspot), power) for hotspot in self.grid.hotspots]
-        random_scores = np.array([random.uniform(0, distance * percentages[i]) for i, distance in enumerate(distances)])
+        random_scores = np.array([random.uniform(0, distance * 100 / (1 + percentages[i])) for i, distance in enumerate(distances)])
         ranks = random_scores.argsort()
-        return {1: prefList[ranks[2]], 2: prefList[ranks[1]], 3: prefList[ranks[0]]}
+        return {1: prefList[ranks[0]], 2: prefList[ranks[1]], 3: prefList[ranks[2]]}
 
     def get(self, number):
         return self.preferences[number]
@@ -66,10 +69,13 @@ class District:
         return rule_plurality(self.voters)[alternative]
 
 class Grid:
-    def __init__(self, size, districts):
+    def __init__(self, size, districts, percentages, hot_on):
         self.size = size
         self.grid = {}
-        self.hotspots = self.hotspots()
+        self.percentages = percentages
+        self.hot_on = hot_on
+        if hot_on:
+            self.hotspots = self.hotspots()
         self.districts = districts
         self.dist_list = []
         for i in range(districts):
@@ -77,7 +83,7 @@ class Grid:
         for x in range(size):
             self.grid[x] = {} 
             for y in range(size):
-                self.grid[x][y] = Voter(self, x, y)
+                self.grid[x][y] = Voter(self, x, y, percentages, hot_on)
         self.init_districts()
         self.plur_gerry()
 
@@ -101,13 +107,6 @@ class Grid:
         points = [point for point in points if self.distance(point, hotspots[1]) > min_distance]
         hotspots.append(random.choice(points))
         return hotspots
-
-    def to_text(self):
-        for x in range(self.size):
-            row = ""
-            for y in range(self.size):
-                row += self.grid[x][y].get(1) + "  "
-            sys.stdout.write(row + "\n")
 
     def distance(self, point1, point2):
         diff_x = abs(point1[0]-point2[0])
@@ -144,7 +143,7 @@ class Grid:
         dist_to_conquer = int(points / points_to_win_a_dist)
         scores_in_dists = np.array([dist.getPlurality('a') for dist in self.dist_list])
         ranks = scores_in_dists.argsort()[::-1]
-        for i in range(dist_to_conquer):
+        for i in range(min(dist_to_conquer, self.districts)):
             self.dist_list[ranks[i]].setConquer(True)
         # for voter in self.dist_neighbours(self.dist_list[0]):
         #     print voter.getX(), voter.getY()
@@ -239,7 +238,7 @@ class Grid:
         fig, ax = plt.subplots(1)
         for x in range(self.size):
             for y in range(self.size):
-                if (x,y) in self.hotspots:
+                if self.hot_on and (x,y) in self.hotspots:
                     color = 'white'
                 else:
                     color = 'black'
@@ -259,11 +258,14 @@ def rule_plurality(profile):
     return score
 
 def main():
-    grid = Grid(12, 6)
+    percentages=[33,33,33]
+    hot_on = True
+    grid = Grid(12, 6, percentages, hot_on)
     # grid.create_districts()
 
-    print('hotspots:')
-    print grid.hotspots
+    if hot_on:
+        print('hotspots:')
+        print grid.hotspots
 
     print('plurality score:')
     print rule_plurality(grid.profile())
