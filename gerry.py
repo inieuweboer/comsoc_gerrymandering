@@ -15,7 +15,7 @@ class Voter:
         self.percentages = percentages
         self.hot_on = hot_on
         if hot_on:
-            self.preferences = self.get_hotspot_pref(2, percentages)
+            self.preferences = self.get_hotspot_pref(1, percentages)
         else:
             self.preferences = self.get_random_pref(percentages)
 
@@ -55,15 +55,39 @@ class District:
 
     def addVoter(self, voter):
         self.voters.append(voter)
+        voter.setDistrict(self.number)
+
+    def removeVoter(self, voter):
+        self.voters.remove(voter)
 
     def getVoters(self):
         return self.voters
+
+    def getSize(self):
+        return len(self.voters)
 
     def getNumber(self):
         return self.number
 
     def setConquer(self, conquer):
         self.conquer = conquer
+
+    def getConquer(self):
+        return self.conquer
+
+    def plur_ask(self, voter):
+        permission = True
+        min_voters = int(self.getSize() / 3) + 1
+        if self.conquer and voter.get(1) == 'a' and self.getPlurality('a') <= min_voters:
+            permission = False
+        return permission
+
+    def plur_victory(self):
+        victory = False
+        min_voters = int(self.getSize() / 3) + 1
+        if self.getPlurality('a') >= min_voters:
+            victory = True
+        return victory
 
     def getPlurality(self, alternative):
         return rule_plurality(self.voters)[alternative]
@@ -85,7 +109,6 @@ class Grid:
             for y in range(size):
                 self.grid[x][y] = Voter(self, x, y, percentages, hot_on)
         self.init_districts()
-        self.plur_gerry()
 
     def profile(self):
         profile = []
@@ -128,7 +151,6 @@ class Grid:
         for y in range(self.size):
             for x in range(self.size):
                 dist = int(int(y / y_dist) * div2 + int(x / x_dist))
-                self.grid[x][y].setDistrict(dist)
                 self.dist_list[dist].addVoter(self.grid[x][y])
 
     def get_divisors(self):
@@ -138,15 +160,101 @@ class Grid:
         return divisor, self.districts / divisor
 
     def plur_gerry(self):
-        points = rule_plurality(self.profile())['a']
-        points_to_win_a_dist = int(((self.size * self.size) / self.districts) / 3) + 1
-        dist_to_conquer = int(points / points_to_win_a_dist)
+        dist_to_conquer = self.dist_to_conquer()
         scores_in_dists = np.array([dist.getPlurality('a') for dist in self.dist_list])
         ranks = scores_in_dists.argsort()[::-1]
         for i in range(min(dist_to_conquer, self.districts)):
             self.dist_list[ranks[i]].setConquer(True)
-        # for voter in self.dist_neighbours(self.dist_list[0]):
-        #     print voter.getX(), voter.getY()
+        first_dist = random.choice(self.dist_list)
+        found_neighbour, new_district, old_district, last_voter = self.plur_step(first_dist)
+        max_iterations = 50
+        iteration = 0
+        while found_neighbour and (self.plur_victory(dist_to_conquer) == False) and (iteration < max_iterations):
+            found_neighbour, new_district, old_district, last_voter = self.plur_step(new_district, old_district)
+            iteration += 1
+            # one district gets one too many voters and another gets one less correction - work in progress
+            # if (found_neighbour == False):
+            #     self.dist_list[old_district].addVoter(save_last_voter)
+            #     self.dist_list[save_last_voter.getDistrict()].removeVoter(save_last_voter)
+            # elif (self.plur_victory(dist_to_conquer)) or (iteration >= max_iterations):
+            #     new_district.addVoter(last_voter)
+            #     self.dist_list[old_district].removeVoter(last_voter)
+            # save_last_voter = last_voter
+
+    def plur_step(self, dist, last_dist=-1):
+        neighbours = [neighbour for neighbour in self.dist_neighbours(dist) if neighbour.getDistrict() != last_dist]
+        found_neighbour = False
+        if dist.getConquer():
+            good_neighbours = [neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
+                and (self.dist_list[neighbour.getDistrict()].getConquer() == False)]
+            ok_neighbours = [neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
+                and self.dist_list[neighbour.getDistrict()].getConquer()]
+            bad_neighbours = [neighbour for neighbour in neighbours if neighbour.get(1) != 'a' 
+                and self.dist_list[neighbour.getDistrict()].getConquer()]
+            very_bad_neighbours = [neighbour for neighbour in neighbours if neighbour.get(1) != 'a' 
+                and (self.dist_list[neighbour.getDistrict()].getConquer() == False)]
+        else:
+            good_neighbours = [neighbour for neighbour in neighbours if neighbour.get(1) != 'a'
+                and self.dist_list[neighbour.getDistrict()].getConquer()]
+            ok_neighbours = [neighbour for neighbour in neighbours if neighbour.get(1) != 'a'
+                and (self.dist_list[neighbour.getDistrict()].getConquer() == False)]
+            bad_neighbours = [neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
+                and (self.dist_list[neighbour.getDistrict()].getConquer() == False)]
+            very_bad_neighbours = [neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
+                and self.dist_list[neighbour.getDistrict()].getConquer()]
+        all_neighbours = good_neighbours + ok_neighbours + bad_neighbours + very_bad_neighbours
+        for neighbour in all_neighbours:
+            neighbour_dist = self.dist_list[neighbour.getDistrict()]
+            if neighbour_dist.plur_ask(neighbour) and self.ask(neighbour):
+                found_neighbour = True
+                dist.addVoter(neighbour)
+                neighbour_dist.removeVoter(neighbour)
+                break;
+        return found_neighbour, neighbour_dist, dist.getNumber(), neighbour
+
+    def plur_victory(self, dist_to_conquer):
+        victory = False
+        victories = [dist for dist in self.dist_list if dist.plur_victory()]
+        if len(victories) == dist_to_conquer:
+            victory = True
+        return victory
+
+    def plur_results(self):
+        conquered_districts = [dist for dist in self.dist_list if dist.plur_victory()]
+        dist_percentage = round(len(conquered_districts) / float(self.districts), 2)
+        percentage = round(rule_plurality(self.profile())['a'] / float(self.size * self.size), 2)
+        dist_to_conquer = self.dist_to_conquer()
+        print('the gerrimanderer has conquered ' + str(len(conquered_districts)) + ' districts out of ' + str(self.districts) 
+                    + ' when ' + str(dist_to_conquer) + ' were possible')
+        print('the gerrimanderer has achieved a percentage of ' + str(dist_percentage) + ' instead of ' + str(percentage))
+
+    def dist_to_conquer(self):
+        points = rule_plurality(self.profile())['a']
+        points_to_win_a_dist = int(((self.size * self.size) / self.districts) / 3) + 1
+        dist_to_conquer = int(points / points_to_win_a_dist)
+        return dist_to_conquer
+
+    def ask(self, voter):
+        district = self.dist_list[voter.getDistrict()]
+        voters = district.getVoters()[:]
+        voters.remove(voter)
+        approve = False
+        options = [[0,-1],[-1,0],[1,0],[0,1]]
+        connected_voters = [voters[0]]
+        new_voters = connected_voters[:]
+        difference = True
+        while difference:
+            for voter in connected_voters:
+                for option in options:
+                    maybe_neighbour = self.grid[(voter.getX()+option[0]) % self.size][(voter.getY()+option[1]) % self.size]
+                    if maybe_neighbour in voters and maybe_neighbour not in new_voters:
+                        new_voters.append(maybe_neighbour)
+            if len(new_voters) == len(connected_voters):
+                difference = False
+            connected_voters = new_voters[:]
+        if len(connected_voters) == len(voters):
+            approve = True
+        return approve
 
     def dist_neighbours(self, dist):
         neighbours = []
@@ -166,21 +274,16 @@ class Grid:
             y = voters[i].getY()
             self.grid[x][y].setDistrict(i + 1)
             num_assigned += 1
-
         index = num_assigned
-
         while (num_assigned < self.size * self.size):
             x = voters[index].getX()
             y = voters[index].getY()
-
             # print("Assigned: " + str(num_assigned))
-
             if self.grid[x][y].getDistrict() == 0:
                 dis = self.get_district_from_neighbors(x, y)
                 if dis != 0:
                     self.grid[x][y].setDistrict(dis)
                     num_assigned += 1
-
             index += 1
             # print("Index: " + str(index))
             index %= self.size * self.size
@@ -222,33 +325,29 @@ class Grid:
     def print_map(self):
         image = np.zeros(self.size*self.size)
         items = 0
-
         for x in range(self.size):
             for y in range(self.size):
                 image[items] = self.grid[x][y].getDistrict()
                 items += 1
-
         # ___OLD PRINT___
         # image[::2] = np.random.random(self.size*self.size //2 + 1)
         # image = image.reshape((self.size, self.size))
         # plt.matshow(image)
         # plt.show()
-
         image = image.reshape((self.size, self.size)).swapaxes(0,1)
         fig, ax = plt.subplots(1)
         for x in range(self.size):
             for y in range(self.size):
+                color = 'black'
+                if self.dist_list[self.grid[x][y].getDistrict()].plur_victory():
+                    color = 'red'
                 if self.hot_on and (x,y) in self.hotspots:
                     color = 'white'
-                else:
-                    color = 'black'
                 # ax.text(x, y, self.grid[x][y].get(1)+self.grid[x][y].get(2)+self.grid[x][y].get(3), va='center', ha='center', color=color)
                 ax.text(x, y, self.grid[x][y].get(1), va='center', ha='center', color=color)
         ax.xaxis.tick_top()
         ax.imshow(image, interpolation ='none', aspect = 'auto')
         plt.show()
-
-
 
 def rule_plurality(profile):
     score = {};
@@ -258,19 +357,56 @@ def rule_plurality(profile):
     return score
 
 def main():
+    size = 12
+    districts = 6
     percentages=[33,33,33]
-    hot_on = True
-    grid = Grid(12, 6, percentages, hot_on)
+    hotspots_on = False
+    grid = Grid(size, districts, percentages, hotspots_on)
     # grid.create_districts()
 
-    if hot_on:
+    if hotspots_on:
         print('hotspots:')
         print grid.hotspots
 
     print('plurality score:')
     print rule_plurality(grid.profile())
 
+    grid.plur_gerry()
+    grid.plur_results()
+    # for dist in grid.dist_list:
+    #     print dist.getSize()
+
     grid.print_map()
 
 if __name__ == "__main__":
     main()
+
+
+# ___BIN___
+
+    # def ask(self, x, y):
+    #     voter = self.grid[x][y]
+    #     dist = voter.getDistrict()
+    #     left = self.grid[(x-1) % self.size][y]
+    #     right = self.grid[(x+1) % self.size][y]
+    #     up = self.grid[x][(y-1) % self.size]
+    #     down = self.grid[x][(y+1) % self.size]
+    #     permission = False
+    #     if self.check_voter(dist, voter) and self.check_voter(dist, left) and self.check_voter(dist, right) and self.check_voter(dist, up) and self.check_voter(dist, down):
+    #         permission = True
+    #     return permission
+
+    # def check_voter(self, district, voter):
+    #     x = voter.getX()
+    #     y = voter.getY()
+    #     center = self.grid[x][y].getDistrict()
+    #     left = self.grid[(x-1) % self.size][y].getDistrict()
+    #     right = self.grid[(x+1) % self.size][y].getDistrict()
+    #     up = self.grid[x][(y-1) % self.size].getDistrict()
+    #     down = self.grid[x][(y+1) % self.size].getDistrict()
+    #     permission = True
+    #     if center == district and district != left and district != right:
+    #         permission = False
+    #     if center == district and district != up and district != down:
+    #         permission = False
+    #     return permission
