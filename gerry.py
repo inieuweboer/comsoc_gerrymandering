@@ -167,7 +167,7 @@ class Grid:
             self.dist_list[ranks[i]].setConquer(True)
         first_dist = random.choice(self.dist_list)
         found_neighbour, new_district, old_district, last_voter = self.plur_step(first_dist)
-        max_iterations = 50
+        max_iterations = 200
         iteration = 0
         while found_neighbour and (self.plur_victory(dist_to_conquer) == False) and (iteration < max_iterations):
             found_neighbour, new_district, old_district, last_voter = self.plur_step(new_district, old_district)
@@ -360,7 +360,7 @@ def main():
     size = 12
     districts = 6
     percentages=[33,33,33]
-    hotspots_on = False
+    hotspots_on = True
     grid = Grid(size, districts, percentages, hotspots_on)
     # grid.create_districts()
 
