@@ -109,12 +109,14 @@ class District:
     def getBorda(self, alternative):
         return rule_borda(self.voters)[alternative]
 
+
 class Grid:
-    def __init__(self, size, districts, percentages, hot_on):
+    def __init__(self, size, districts, percentages, hot_on, prop_lim):
         self.size = size
         self.grid = {}
         self.percentages = percentages
         self.hot_on = hot_on
+        self.prop_lim = prop_lim
         if hot_on:
             self.hotspots = self.hotspots()
         self.districts = districts
@@ -351,6 +353,25 @@ class Grid:
             connected_voters = new_voters[:]
         if len(connected_voters) == len(voters):
             approve = True
+        if self.prop_lim and (self.check_prop(district) == False):
+            approve = False
+        return approve
+
+    def check_prop(self, dist):
+        options = [[0,-1],[-1,0],[1,0],[0,1]]
+        inner_voters = []
+        approve = True
+        voters = dist.getVoters()
+        for voter in voters:
+            inner = True
+            for option in options:
+                neighbour = self.grid[(voter.getX()+option[0]) % self.size][(voter.getY()+option[1]) % self.size]
+                if neighbour.getDistrict() != dist.getNumber():
+                    inner = False
+            if inner:
+                inner_voters.append(voter)
+        if len(inner_voters) < int(len(voters) / 4):
+            approve = False
         return approve
 
     def dist_neighbours(self, dist):
@@ -421,13 +442,14 @@ def main():
     districts = 6
     percentages=[33,33,33]
     hotspots_on = True
-    grid = Grid(size, districts, percentages, hotspots_on)
+    proportion_limit = True
+    grid = Grid(size, districts, percentages, hotspots_on, proportion_limit)
     if hotspots_on:
         print('hotspots:')
         print grid.hotspots
 
-    # run_plurality(grid)
-    run_borda(grid)
+    run_plurality(grid)
+    # run_borda(grid)
 
     # for dist in grid.dist_list:
     #     print dist.getSize()
