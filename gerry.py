@@ -19,12 +19,14 @@ class Voter:
         else:
             self.preferences = self.get_random_pref(percentages)
 
+    # preferences are generated randomly according to the percentages using a uniform distribution
     def get_random_pref(self, percentages):
         prefList = ['a','b','c']
         random_scores = np.array([random.uniform(0, percentage) for percentage in percentages]) 
         ranks = random_scores.argsort()
         return {1: prefList[ranks[2]], 2: prefList[ranks[1]], 3: prefList[ranks[0]]}
 
+    # preferences depend on the distance from the hotspots, one for each alternative, and on the precentages
     def get_hotspot_pref(self, power, percentages):
         prefList = ['a','b','c']
         distances = [pow(self.grid.distance((self.x, self.y), hotspot), power) for hotspot in self.grid.hotspots]
@@ -51,6 +53,7 @@ class District:
     def __init__(self, number):
         self.number = number
         self.voters = []
+        # it defines if the district is to be conquered by the gerrymandarer or left to another variable
         self.conquer = False
 
     def addVoter(self, voter):
@@ -75,6 +78,7 @@ class District:
     def getConquer(self):
         return self.conquer
 
+    # gives the permission to remove a voter if his vote is not necessary to conquer the district under plurality
     def plur_ask(self, voter):
         permission = True
         min_voters = int(self.getSize() / 3) + 1
@@ -82,6 +86,7 @@ class District:
             permission = False
         return permission
 
+    # checks if the district has been conquered under plurality
     def plur_victory(self):
         victory = False
         min_voters = int(self.getSize() / 3) + 1
@@ -89,9 +94,11 @@ class District:
             victory = True
         return victory
 
+    # runs the plurality rule restricted to the voters belonging to the district
     def getPlurality(self, alternative):
         return rule_plurality(self.voters)[alternative]
 
+    # gives the permission to remove a voter if his vote is not necessary to conquer the district under borda
     def borda_ask(self, voter):
         permission = True
         min_points = int(self.getSize() * 3 / 3) + 1
@@ -99,6 +106,7 @@ class District:
             permission = False
         return permission
 
+    # checks if the district has been conquered under plurality
     def borda_victory(self):
         victory = False
         min_points = int(self.getSize() * 3 / 3) + 1
@@ -106,6 +114,7 @@ class District:
             victory = True
         return victory
 
+    # runs the borda rule restricted to the voters belonging to the district
     def getBorda(self, alternative):
         return rule_borda(self.voters)[alternative]
 
@@ -115,20 +124,25 @@ class Grid:
         self.size = size
         self.grid = {}
         self.percentages = percentages
+        # defines if there are hotspots around which voters are grouped
         self.hot_on = hot_on
+        # defines if there is a limit on the ratio between area and perimeter of a district
         self.prop_lim = prop_lim
         if hot_on:
             self.hotspots = self.hotspots()
         self.districts = districts
         self.dist_list = []
+        # creates the districts
         for i in range(districts):
             self.dist_list.append(District(i))
+        # generates the voters
         for x in range(size):
             self.grid[x] = {} 
             for y in range(size):
                 self.grid[x][y] = Voter(self, x, y, percentages, hot_on)
         self.init_districts()
 
+    # returns a list of all the voters
     def profile(self):
         profile = []
         for x in range(self.size):
@@ -136,6 +150,7 @@ class Grid:
                 profile.append(self.grid[x][y])
         return profile
 
+    # randomly chooses the points in the grid to be hotspots setting a minimal distance from each other proportional to the grid size
     def hotspots(self):
         min_distance = self.size / 2 - 1
         points = []
@@ -150,6 +165,7 @@ class Grid:
         hotspots.append(random.choice(points))
         return hotspots
 
+    # calculates the distance between two voters as if they are on a toroidal grid
     def distance(self, point1, point2):
         diff_x = abs(point1[0]-point2[0])
         diff_y = abs(point1[1]-point2[1])
@@ -158,11 +174,13 @@ class Grid:
     def get_voter(self, x, y):
         return self.grid[x][y]
 
+    # returns voters in a random order
     def random_order(self):
         voters = self.profile()
         random.shuffle(voters)
         return voters
 
+    # the districts are initialized as rectangles of equal size
     def init_districts(self):
         div1, div2 = self.get_divisors()
         x_dist = self.size / div2
@@ -172,12 +190,14 @@ class Grid:
                 dist = int(int(y / y_dist) * div2 + int(x / x_dist))
                 self.dist_list[dist].addVoter(self.grid[x][y])
 
+    # returns the two largest numbers that multiplied together give the number of districts
     def get_divisors(self):
         divisor = math.floor(math.sqrt(self.districts))
         while self.districts % divisor != 0:
             divisor -= 1
         return divisor, self.districts / divisor
 
+    # sets the districts where 'a' has more voters as to-be-conquered, then runs the iterative voter exchange process for plurality
     def plur_gerry(self):
         self.rule = 'plurality'
         plur_conquer = self.plur_conquer()
@@ -201,6 +221,8 @@ class Grid:
             #     self.dist_list[old_district].removeVoter(last_voter)
             # save_last_voter = last_voter
 
+    # divides the neighbour voters of a district in groups from the best the district could get to the worst, then asks the neighbour's district
+    # and the grid if one of the voters can be exchanged
     def plur_step(self, dist, last_dist=-1):
         neighbours = [neighbour for neighbour in self.dist_neighbours(dist) if neighbour.getDistrict() != last_dist]
         found_neighbour = False
@@ -232,6 +254,7 @@ class Grid:
                 break;
         return found_neighbour, neighbour_dist, dist.getNumber(), neighbour
 
+    # returns if the number of conquered district is maximal under plurality
     def plur_victory(self, plur_conquer):
         victory = False
         victories = [dist for dist in self.dist_list if dist.plur_victory()]
@@ -239,12 +262,14 @@ class Grid:
             victory = True
         return victory
 
+    # returns the maximal number of districts that can be conquered under plurality with the current preference distribution
     def plur_conquer(self):
         points = rule_plurality(self.profile())['a']
         points_to_win_a_dist = int(((self.size * self.size) / self.districts) / 3) + 1
         plur_conquer = int(points / points_to_win_a_dist)
         return plur_conquer
 
+    # prints the results of the plurality run
     def plur_results(self):
         conquered_districts = [dist for dist in self.dist_list if dist.plur_victory()]
         dist_percentage = round(len(conquered_districts) / float(self.districts), 2)
@@ -252,8 +277,9 @@ class Grid:
         plur_conquer = self.plur_conquer()
         print('the gerrimanderer has conquered ' + str(len(conquered_districts)) + ' districts out of ' + str(self.districts) 
                     + ' when ' + str(plur_conquer) + ' were possible')
-        print('the gerrimanderer has achieved a percentage of ' + str(dist_percentage) + ' instead of ' + str(percentage))
+        print('the gerrimanderer has achieved a percentage of ' + str(dist_percentage) + ' instead of just ' + str(percentage))
 
+    # sets the districts where 'a' has more voters as to-be-conquered, then runs the iterative voter exchange process for borda
     def borda_gerry(self):
         self.rule = 'borda'
         borda_conquer = self.borda_conquer()
@@ -269,6 +295,8 @@ class Grid:
             found_neighbour, new_district, old_district, last_voter = self.borda_step(new_district, old_district)
             iteration += 1
 
+    # divides the neighbour voters of a district in groups from the best the district could get to the worst, then asks the neighbour's district
+    # and the grid if any of the voters can be exchanged
     def borda_step(self, dist, last_dist=-1):
         neighbours = [neighbour for neighbour in self.dist_neighbours(dist) if neighbour.getDistrict() != last_dist]
         found_neighbour = False
@@ -311,6 +339,7 @@ class Grid:
                 break;
         return found_neighbour, neighbour_dist, dist.getNumber(), neighbour
 
+    # returns if the number of conquered district is maximal under borda
     def borda_victory(self, borda_conquer):
         victory = False
         victories = [dist for dist in self.dist_list if dist.borda_victory()]
@@ -318,12 +347,14 @@ class Grid:
             victory = True
         return victory
 
+    # returns the maximal number of districts that can be conquered under borda with the current preference distribution
     def borda_conquer(self):
         points = rule_borda(self.profile())['a']
         points_to_win_a_dist = int(((self.size * self.size * 3) / self.districts) / 3) + 1
         borda_conquer = int(points / points_to_win_a_dist)
         return borda_conquer
 
+    # prints the results of the borda run
     def borda_results(self):
         conquered_districts = [dist for dist in self.dist_list if dist.borda_victory()]
         dist_percentage = round(len(conquered_districts) / float(self.districts), 2)
@@ -331,8 +362,9 @@ class Grid:
         borda_conquer = self.borda_conquer()
         print('the gerrimanderer has conquered ' + str(len(conquered_districts)) + ' districts out of ' + str(self.districts) 
                     + ' when ' + str(borda_conquer) + ' were possible')
-        print('the gerrimanderer has achieved a percentage of ' + str(dist_percentage) + ' instead of ' + str(percentage))
+        print('the gerrimanderer has achieved a percentage of ' + str(dist_percentage) + ' instead of just ' + str(percentage))
 
+    # checks if removing a voter from a district leaves the district connected and in case there is a proportion limit checks the district's proportions
     def ask(self, voter):
         district = self.dist_list[voter.getDistrict()]
         voters = district.getVoters()[:]
@@ -357,6 +389,7 @@ class Grid:
             approve = False
         return approve
 
+    # checks whether the number of inner voters in a district is above a threshold in order to keep low the ratio between perimeter / area of the district
     def check_prop(self, dist):
         options = [[0,-1],[-1,0],[1,0],[0,1]]
         inner_voters = []
@@ -374,6 +407,7 @@ class Grid:
             approve = False
         return approve
 
+    # returns a list of the neighbour voters of a district
     def dist_neighbours(self, dist):
         neighbours = []
         options = [[0,-1],[-1,0],[1,0],[0,1]]
@@ -384,6 +418,8 @@ class Grid:
                     neighbours.append(maybe_neighbour)
         return neighbours
 
+    # prints a map where districts are divided by colours and the first preference of the voters is displayed in red if the voter belongs to a conquered district,
+    # in white if there is an hotspot in his position on the grid or in black otherwise
     def print_map(self):
         image = np.zeros(self.size*self.size)
         items = 0
@@ -410,6 +446,7 @@ class Grid:
         ax.imshow(image, interpolation ='none', aspect = 'auto')
         plt.show()
 
+# calculates plurality on the entire profile
 def rule_plurality(profile):
     score = {}
     score['a'] = score['b'] = score['c'] = 0
@@ -417,6 +454,7 @@ def rule_plurality(profile):
         score[voter.get(1)] += 1
     return score
 
+# calculates borda on the entire profile
 def rule_borda(profile):
     score = {}
     score['a'] = score['b'] = score['c'] = 0
