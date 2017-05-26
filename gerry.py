@@ -123,6 +123,7 @@ class Grid:
     def __init__(self, size, districts, percentages, hot_on, prop_lim):
         self.size = size
         self.grid = {}
+        self.rule = ''
         self.percentages = percentages
         # defines if there are hotspots around which voters are grouped
         self.hot_on = hot_on
@@ -222,7 +223,7 @@ class Grid:
             # save_last_voter = last_voter
 
     # divides the neighbour voters of a district in groups from the best the district could get to the worst, then asks the neighbour's district
-    # and the grid if one of the voters can be exchanged
+    # and the grid if one of the voters can be acquired
     def plur_step(self, dist, last_dist=-1):
         neighbours = [neighbour for neighbour in self.dist_neighbours(dist) if neighbour.getDistrict() != last_dist]
         found_neighbour = False
@@ -304,10 +305,10 @@ class Grid:
         if dist.getConquer():
             neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
                 and (self.dist_list[neighbour.getDistrict()].getConquer() == False)])
-            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(2) == 'a' 
-                and (self.dist_list[neighbour.getDistrict()].getConquer() == False)])
             neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
                 and self.dist_list[neighbour.getDistrict()].getConquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(2) == 'a' 
+                and (self.dist_list[neighbour.getDistrict()].getConquer() == False)])
             neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(2) == 'a' 
                 and self.dist_list[neighbour.getDistrict()].getConquer()])
             neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(3) == 'a' 
@@ -385,16 +386,17 @@ class Grid:
             connected_voters = new_voters[:]
         if len(connected_voters) == len(voters):
             approve = True
-        if self.prop_lim and (self.check_prop(district) == False):
+        if self.prop_lim and (self.check_prop(district, voter) == False):
             approve = False
         return approve
 
     # checks whether the number of inner voters in a district is above a threshold in order to keep low the ratio between perimeter / area of the district
-    def check_prop(self, dist):
+    def check_prop(self, dist, voter):
         options = [[0,-1],[-1,0],[1,0],[0,1]]
         inner_voters = []
         approve = True
-        voters = dist.getVoters()
+        voters = dist.getVoters()[:]
+        voters.remove(voter)
         for voter in voters:
             inner = True
             for option in options:
@@ -486,8 +488,8 @@ def main():
         print('hotspots:')
         print grid.hotspots
 
-    run_plurality(grid)
-    # run_borda(grid)
+    # run_plurality(grid)
+    run_borda(grid)
 
     # for dist in grid.dist_list:
     #     print dist.getSize()
