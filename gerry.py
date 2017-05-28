@@ -4,7 +4,7 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 from random import shuffle
-
+import operator
 
 class Voter:
     def __init__(self, grid, x, y, percentages, hot_on):
@@ -78,6 +78,11 @@ class District:
     def get_conquer(self):
         return self.conquer
 
+    # returns the plurality winner of the district
+    def plur_first(self):
+        plurality = rule_plurality(self.voters)
+        return max(plurality.iteritems(), key=operator.itemgetter(1))[0]
+
     # gives the permission to remove a voter if his vote is not necessary to conquer the district under plurality
     def plur_ask(self, voter):
         permission = True
@@ -96,10 +101,17 @@ class District:
     def get_plurality(self, alternative):
         return rule_plurality(self.voters)[alternative]
 
+    # returns the borda winner of the district
+    def borda_first(self):
+        borda = rule_borda(self.voters)
+        return max(borda.iteritems(), key=operator.itemgetter(1))[0]
+
     # gives the permission to remove a voter if his vote is not necessary to conquer the district under borda
     def borda_ask(self, voter):
         permission = True
         if self.conquer and voter.get(1) == 'a' and (self.get_borda('a') <= self.get_borda('b') or self.get_borda('a') <= self.get_borda('c')):
+            permission = False
+        if self.conquer and voter.get(3) != 'a' and voter.get(3) == self.borda_first() and (self.get_borda('a') <= self.get_borda('b') or self.get_borda('a') <= self.get_borda('c')):
             permission = False
         return permission
 
@@ -200,13 +212,13 @@ class Grid:
         plur_conquer = self.plur_conquer()
         scores_in_dists = np.array([dist.get_plurality('a') for dist in self.dist_list])
         ranks = scores_in_dists.argsort()[::-1]
-        if plur_conquer / float(self.districts) > 0.5:
-            plur_conquer -= 1
+        # if plur_conquer / float(self.districts) > 0.5:
+        #     plur_conquer -= 1
         for i in range(min(plur_conquer, self.districts)):
             self.dist_list[ranks[i]].set_conquer(True)
         first_dist = random.choice(self.dist_list)
         found_neighbour, new_district, old_district, last_voter = self.plur_step(first_dist)
-        max_iterations = 350
+        max_iterations = 300
         iteration = 0
         while found_neighbour and (self.plur_victory(plur_conquer) == False) and (iteration < max_iterations):
             found_neighbour, new_district, old_district, last_voter = self.plur_step(new_district, old_district)
@@ -225,25 +237,36 @@ class Grid:
     def plur_step(self, dist, last_dist=-1):
         neighbours = [neighbour for neighbour in self.dist_neighbours(dist) if neighbour.get_district() != last_dist]
         found_neighbour = False
+        neighbours_by_type = []
         if dist.get_conquer():
-            good_neighbours = [neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
-                and (self.dist_list[neighbour.get_district()].get_conquer() == False)]
-            ok_neighbours = [neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
-                and self.dist_list[neighbour.get_district()].get_conquer()]
-            bad_neighbours = [neighbour for neighbour in neighbours if neighbour.get(1) != 'a' 
-                and self.dist_list[neighbour.get_district()].get_conquer()]
-            very_bad_neighbours = [neighbour for neighbour in neighbours if neighbour.get(1) != 'a' 
-                and (self.dist_list[neighbour.get_district()].get_conquer() == False)]
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
+                and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a' and neighbour.get(1) != dist.plur_first()
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a' and neighbour.get(1) != dist.plur_first()
+                and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a' and neighbour.get(1) == dist.plur_first()
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a' and neighbour.get(1) == dist.plur_first()
+                and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
         else:
-            good_neighbours = [neighbour for neighbour in neighbours if neighbour.get(1) != 'a'
-                and self.dist_list[neighbour.get_district()].get_conquer()]
-            ok_neighbours = [neighbour for neighbour in neighbours if neighbour.get(1) != 'a'
-                and (self.dist_list[neighbour.get_district()].get_conquer() == False)]
-            bad_neighbours = [neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
-                and (self.dist_list[neighbour.get_district()].get_conquer() == False)]
-            very_bad_neighbours = [neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
-                and self.dist_list[neighbour.get_district()].get_conquer()]
-        all_neighbours = good_neighbours + ok_neighbours + bad_neighbours + very_bad_neighbours
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a'
+                and self.dist_list[neighbour.get_district()].plur_first() == neighbour.get(1)
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a'
+                and self.dist_list[neighbour.get_district()].plur_first() != neighbour.get(1)
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a'
+                and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
+                and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+        all_neighbours = []
+        for neighbour_group in neighbours_by_type:
+            all_neighbours += neighbour_group
         for neighbour in all_neighbours:
             neighbour_dist = self.dist_list[neighbour.get_district()]
             if neighbour_dist.plur_ask(neighbour) and self.ask(neighbour):
@@ -284,13 +307,13 @@ class Grid:
         borda_conquer = self.borda_conquer()
         scores_in_dists = np.array([dist.get_borda('a') for dist in self.dist_list])
         ranks = scores_in_dists.argsort()[::-1]
-        if borda_conquer / float(self.districts) > 0.5:
-            borda_conquer -= 1
+        # if borda_conquer / float(self.districts) > 0.5:
+        #     borda_conquer -= 1
         for i in range(min(borda_conquer, self.districts)):
             self.dist_list[ranks[i]].set_conquer(True)
         first_dist = random.choice(self.dist_list)
         found_neighbour, new_district, old_district, last_voter = self.borda_step(first_dist)
-        max_iterations = 350
+        max_iterations = 300
         iteration = 0
         while found_neighbour and (self.borda_victory(borda_conquer) == False) and (iteration < max_iterations):
             found_neighbour, new_district, old_district, last_voter = self.borda_step(new_district, old_district)
@@ -307,16 +330,28 @@ class Grid:
                 and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
             neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
                 and self.dist_list[neighbour.get_district()].get_conquer()])
-            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(2) == 'a' 
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(2) == 'a' and neighbour.get(1) != dist.borda_first()
                 and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
-            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(2) == 'a' 
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(2) == 'a' and neighbour.get(1) != dist.borda_first()
                 and self.dist_list[neighbour.get_district()].get_conquer()])
-            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(3) == 'a' 
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(2) == 'a' and neighbour.get(1) == dist.borda_first()
+                and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(3) == 'a' and neighbour.get(1) != dist.borda_first()
                 and self.dist_list[neighbour.get_district()].get_conquer()])
-            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(3) == 'a' 
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(2) == 'a' and neighbour.get(1) == dist.borda_first()
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(3) == 'a' and neighbour.get(1) != dist.borda_first()
+                and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(3) == 'a' and neighbour.get(1) == dist.borda_first()
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(3) == 'a' and neighbour.get(1) == dist.borda_first()
                 and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
         else:
             neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(3) == 'a'
+                and self.dist_list[neighbour.get_district()].borda_first() == neighbour.get(1)
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(3) == 'a'
+                and self.dist_list[neighbour.get_district()].borda_first() != neighbour.get(1)
                 and self.dist_list[neighbour.get_district()].get_conquer()])
             neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(3) == 'a'
                 and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
@@ -325,8 +360,16 @@ class Grid:
             neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a'
                 and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
             neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(2) == 'a'
+                and self.dist_list[neighbour.get_district()].borda_first() == neighbour.get(1)
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(2) == 'a'
+                and self.dist_list[neighbour.get_district()].borda_first() != neighbour.get(1)
                 and self.dist_list[neighbour.get_district()].get_conquer()])
             neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a'
+                and self.dist_list[neighbour.get_district()].borda_first() == neighbour.get(2)
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a'
+                and self.dist_list[neighbour.get_district()].borda_first() != neighbour.get(2)
                 and self.dist_list[neighbour.get_district()].get_conquer()])
         all_neighbours = []
         for neighbour_group in neighbours_by_type:
@@ -480,7 +523,8 @@ def run_borda(grid):
 def main():
     size = 12
     districts = 6
-    percentages=[20,40,40]
+    # percentages=[30,35,35]
+    percentages=[33,33,33]
     hotspots_on = False
     proportion_limit = False
     grid = Grid(size, districts, percentages, hotspots_on, proportion_limit)
