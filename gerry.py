@@ -27,6 +27,7 @@ class Voter:
         return {1: prefList[ranks[2]], 2: prefList[ranks[1]], 3: prefList[ranks[0]]}
 
     # preferences depend on the distance from the hotspots, one for each alternative, and on the precentages
+    # the higher the distance from an hotspot, the more unlikely the associated alternative will have a high spot in the voter preference order
     def get_hotspot_pref(self, power, percentages):
         prefList = ['a','b','c']
         distances = [pow(self.grid.distance((self.x, self.y), hotspot), power) for hotspot in self.grid.hotspots]
@@ -111,6 +112,7 @@ class District:
         permission = True
         if self.conquer and voter.get(1) == 'a' and (self.get_borda('a') <= self.get_borda('b') or self.get_borda('a') <= self.get_borda('c')):
             permission = False
+        # this second condition ensures that if the voter ranks the non-a alternative that is winning the district last he does not get removed from the district
         if self.conquer and voter.get(3) != 'a' and voter.get(3) == self.borda_first() and (self.get_borda('a') <= self.get_borda('b') or self.get_borda('a') <= self.get_borda('c')):
             permission = False
         return permission
@@ -126,7 +128,7 @@ class District:
     def get_borda(self, alternative):
         return rule_borda(self.voters)[alternative]
 
-    # returns the copeland winner of the district
+    # returns the alternative that is more likely to win the district under copeland
     def cope_first(self):
         copeland = rule_copeland(self.voters)
         alt_scores = {}
@@ -140,6 +142,7 @@ class District:
         permission = True
         if self.conquer and voter.get(1) == 'a' and (self.get_cope('ab') <= 0 or self.get_cope('ac') <= 0):
             permission = False
+        # this second condition ensures that if the voter ranks the non-a alternative that is winning the district last he does not get removed from the district
         if self.conquer and voter.get(3) != 'a' and voter.get(3) == self.cope_first() and (self.get_cope('ab') <= 0 or self.get_cope('ac') <= 0):
             permission = False
         return permission
@@ -252,14 +255,6 @@ class Grid:
         while found_neighbour and (self.plur_victory(plur_conquer) == False) and (iteration < max_iterations):
             found_neighbour, new_district, old_district, last_voter = self.plur_step(new_district, old_district)
             iteration += 1
-            # one district gets one too many voters and another gets one less correction - work in progress
-            # if (found_neighbour == False):
-            #     self.dist_list[old_district].add_voter(save_last_voter)
-            #     self.dist_list[save_last_voter.get_district()].remove_voter(save_last_voter)
-            # elif (self.plur_victory(plur_conquer)) or (iteration >= max_iterations):
-            #     new_district.add_voter(last_voter)
-            #     self.dist_list[old_district].remove_voter(last_voter)
-            # save_last_voter = last_voter
 
     # divides the neighbour voters of a district in groups from the best the district could get to the worst, then asks the neighbour's district
     # and the grid if one of the voters can be acquired
@@ -676,7 +671,7 @@ def rule_borda(profile):
         score[voter.get(2)] += 1
     return score
 
-# calculates borda on the entire profile
+# calculates copeland on the entire profile
 def rule_copeland(profile):
     score = {}
     score['ab'] = score['ac'] = score['ba'] = score['bc'] = score['ca'] = score['cb'] = 0
@@ -782,6 +777,16 @@ if __name__ == "__main__":
 
 
 # ___BIN___
+
+    # HOW TO EVEN THE NUMBER OF VOTERS PER DISTRICT
+    # one district gets one too many voters and another gets one less correction - work in progress
+    # if (found_neighbour == False):
+    #     self.dist_list[old_district].add_voter(save_last_voter)
+    #     self.dist_list[save_last_voter.get_district()].remove_voter(save_last_voter)
+    # elif (self.plur_victory(plur_conquer)) or (iteration >= max_iterations):
+    #     new_district.add_voter(last_voter)
+    #     self.dist_list[old_district].remove_voter(last_voter)
+    # save_last_voter = last_voter
 
     # ___OLD VICTORY___
     # gives the permission to remove a voter if his vote is not necessary to conquer the district under plurality
