@@ -126,6 +126,35 @@ class District:
     def get_borda(self, alternative):
         return rule_borda(self.voters)[alternative]
 
+    # returns the copeland winner of the district
+    def cope_first(self):
+        copeland = rule_copeland(self.voters)
+        alt_scores = {}
+        alt_scores['a'] = copeland['ab'] + copeland['ac']
+        alt_scores['b'] = copeland['ba'] + copeland['bc']
+        alt_scores['c'] = copeland['ca'] + copeland['cb']
+        return max(alt_scores.iteritems(), key=operator.itemgetter(1))[0]
+
+    # gives the permission to remove a voter if his vote is not necessary to conquer the district under copeland
+    def cope_ask(self, voter):
+        permission = True
+        if self.conquer and voter.get(1) == 'a' and (self.get_cope('ab') <= 0 or self.get_cope('ac') <= 0):
+            permission = False
+        if self.conquer and voter.get(3) != 'a' and voter.get(3) == self.cope_first() and (self.get_cope('ab') <= 0 or self.get_cope('ac') <= 0):
+            permission = False
+        return permission
+
+    # checks if the district has been conquered under copeland
+    def cope_victory(self):
+        victory = False
+        if self.get_cope('ab') > 0 and self.get_cope('ac') > 0:
+            victory = True
+        return victory
+
+    # runs the copeland rule restricted to the voters belonging to the district
+    def get_cope(self, alternatives):
+        return rule_copeland(self.voters)[alternatives]
+
 
 class Grid:
     def __init__(self, size, districts, percentages, hot_on, prop_lim):
@@ -408,6 +437,113 @@ class Grid:
                     + ' when ' + str(borda_conquer) + ' were possible')
         print('the gerrimanderer has achieved a percentage of ' + str(dist_percentage) + ' instead of ' + str(percentage))
 
+    # sets the districts where 'a' has more voters as to-be-conquered, then runs the iterative voter exchange process for copeland
+    def cope_gerry(self):
+        self.rule = 'copeland'
+        cope_conquer = self.cope_conquer()
+        scores_in_dists = np.array([dist.get_cope('ab') + dist.get_cope('ac') for dist in self.dist_list])
+        ranks = scores_in_dists.argsort()[::-1]
+        # if cope_conquer / float(self.districts) > 0.5:
+        #     cope_conquer -= 1
+        for i in range(min(cope_conquer, self.districts)):
+            self.dist_list[ranks[i]].set_conquer(True)
+        first_dist = random.choice(self.dist_list)
+        found_neighbour, new_district, old_district, last_voter = self.cope_step(first_dist)
+        max_iterations = 300
+        iteration = 0
+        while found_neighbour and (self.cope_victory(cope_conquer) == False) and (iteration < max_iterations):
+            found_neighbour, new_district, old_district, last_voter = self.cope_step(new_district, old_district)
+            iteration += 1
+
+    # divides the neighbour voters of a district in groups from the best the district could get to the worst, then asks the neighbour's district
+    # and the grid if any of the voters can be exchanged
+    def cope_step(self, dist, last_dist=-1):
+        neighbours = [neighbour for neighbour in self.dist_neighbours(dist) if neighbour.get_district() != last_dist]
+        found_neighbour = False
+        neighbours_by_type = []
+        if dist.get_conquer():
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
+                and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(2) == 'a' and neighbour.get(1) != dist.cope_first()
+                and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(2) == 'a' and neighbour.get(1) != dist.cope_first()
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(2) == 'a' and neighbour.get(1) == dist.cope_first()
+                and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(3) == 'a' and neighbour.get(1) != dist.cope_first()
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(2) == 'a' and neighbour.get(1) == dist.cope_first()
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(3) == 'a' and neighbour.get(1) != dist.cope_first()
+                and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(3) == 'a' and neighbour.get(1) == dist.cope_first()
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(3) == 'a' and neighbour.get(1) == dist.cope_first()
+                and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+        else:
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(3) == 'a'
+                and self.dist_list[neighbour.get_district()].cope_first() == neighbour.get(1)
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(3) == 'a'
+                and self.dist_list[neighbour.get_district()].cope_first() != neighbour.get(1)
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(3) == 'a'
+                and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(2) == 'a'
+                and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a'
+                and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(2) == 'a'
+                and self.dist_list[neighbour.get_district()].cope_first() == neighbour.get(1)
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(2) == 'a'
+                and self.dist_list[neighbour.get_district()].cope_first() != neighbour.get(1)
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a'
+                and self.dist_list[neighbour.get_district()].cope_first() == neighbour.get(2)
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+            neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a'
+                and self.dist_list[neighbour.get_district()].cope_first() != neighbour.get(2)
+                and self.dist_list[neighbour.get_district()].get_conquer()])
+        all_neighbours = []
+        for neighbour_group in neighbours_by_type:
+            all_neighbours += neighbour_group
+        for neighbour in all_neighbours:
+            neighbour_dist = self.dist_list[neighbour.get_district()]
+            if neighbour_dist.cope_ask(neighbour) and self.ask(neighbour):
+                found_neighbour = True
+                dist.add_voter(neighbour)
+                neighbour_dist.remove_voter(neighbour)
+                break;
+        return found_neighbour, neighbour_dist, dist.get_number(), neighbour
+
+    # returns if the number of conquered district is maximal under copeland
+    def cope_victory(self, cope_conquer):
+        victory = False
+        victories = [dist for dist in self.dist_list if dist.cope_victory()]
+        if len(victories) == cope_conquer:
+            victory = True
+        return victory
+
+    # returns the maximal number of districts that can be conquered under copeland with the current preference distribution
+    def cope_conquer(self):
+        points = rule_borda(self.profile())['a']
+        points_to_win_a_dist = int(((self.size * self.size * 3) / self.districts) / 3) + 1
+        borda_conquer = int(points / points_to_win_a_dist)
+        return borda_conquer
+
+    # prints the results of the copeland run
+    def cope_results(self):
+        conquered_districts = [dist for dist in self.dist_list if dist.cope_victory()]
+        dist_percentage = round(len(conquered_districts) / float(self.districts), 2)
+        percentage = round(rule_borda(self.profile())['a'] / float(self.size * self.size * 3), 2)
+        cope_conquer = self.cope_conquer()
+        print('the gerrimanderer has conquered ' + str(len(conquered_districts)) + ' districts out of ' + str(self.districts) 
+                    + ' when ' + str(cope_conquer) + ' were possible')
+        print('the gerrimanderer has achieved a percentage of ' + str(dist_percentage) + ' instead of ' + str(percentage))
+
     # checks if removing a voter from a district leaves the district connected and in case there is a proportion limit checks the district's proportions
     def ask(self, voter):
         district = self.dist_list[voter.get_district()]
@@ -483,6 +619,9 @@ class Grid:
                 if self.rule == 'borda':
                     if self.dist_list[self.grid[x][y].get_district()].borda_victory():
                         color = 'red'
+                if self.rule == 'copeland':
+                    if self.dist_list[self.grid[x][y].get_district()].cope_victory():
+                        color = 'red'
                 if self.hot_on and (x,y) in self.hotspots:
                     color = 'white'
                 # ax.text(x, y, self.grid[x][y].get(1)+self.grid[x][y].get(2)+self.grid[x][y].get(3), va='center', ha='center', color=color)
@@ -508,6 +647,19 @@ def rule_borda(profile):
         score[voter.get(2)] += 1
     return score
 
+# calculates borda on the entire profile
+def rule_copeland(profile):
+    score = {}
+    score['ab'] = score['ac'] = score['ba'] = score['bc'] = score['ca'] = score['cb'] = 0
+    for voter in profile:
+        score[voter.get(1) + voter.get(2)] += 1
+        score[voter.get(2) + voter.get(1)] -= 1
+        score[voter.get(1) + voter.get(3)] += 1
+        score[voter.get(3) + voter.get(1)] -= 1
+        score[voter.get(2) + voter.get(3)] += 1
+        score[voter.get(3) + voter.get(2)] -= 1
+    return score
+
 def run_plurality(grid):
     print('plurality score:')
     print rule_plurality(grid.profile())
@@ -519,6 +671,12 @@ def run_borda(grid):
     print rule_borda(grid.profile())
     grid.borda_gerry()
     grid.borda_results()
+
+def run_copeland(grid):
+    print('copeland score:')
+    print rule_copeland(grid.profile())
+    grid.cope_gerry()
+    grid.cope_results()
 
 def main():
     size = 12
@@ -532,8 +690,9 @@ def main():
         print('hotspots:')
         print grid.hotspots
 
-    run_plurality(grid)
+    # run_plurality(grid)
     # run_borda(grid)
+    run_copeland(grid)
 
     # for dist in grid.dist_list:
     #     print dist.get_size()
