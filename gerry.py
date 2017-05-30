@@ -1,5 +1,5 @@
 import random
-import sys
+import sys, os
 import math
 import matplotlib.pyplot as plt
 import numpy as np
@@ -630,6 +630,35 @@ class Grid:
         ax.imshow(image, interpolation ='none', aspect = 'auto')
         plt.show()
 
+    def save_map(self, destination):
+        image = np.zeros(self.size*self.size)
+        items = 0
+        for x in range(self.size):
+            for y in range(self.size):
+                image[items] = self.grid[x][y].get_district()
+                items += 1
+        image = image.reshape((self.size, self.size)).swapaxes(0,1)
+        fig, ax = plt.subplots(1)
+        for x in range(self.size):
+            for y in range(self.size):
+                color = 'black'
+                if self.rule == 'plurality':
+                    if self.dist_list[self.grid[x][y].get_district()].plur_victory():
+                        color = 'red'
+                if self.rule == 'borda':
+                    if self.dist_list[self.grid[x][y].get_district()].borda_victory():
+                        color = 'red'
+                if self.rule == 'copeland':
+                    if self.dist_list[self.grid[x][y].get_district()].cope_victory():
+                        color = 'red'
+                if self.hot_on and (x,y) in self.hotspots:
+                    color = 'white'
+                # ax.text(x, y, self.grid[x][y].get(1)+self.grid[x][y].get(2)+self.grid[x][y].get(3), va='center', ha='center', color=color)
+                ax.text(x, y, self.grid[x][y].get(1), va='center', ha='center', color=color)
+        ax.xaxis.tick_top()
+        ax.imshow(image, interpolation ='none', aspect = 'auto')
+        plt.savefig(destination)
+
 # calculates plurality on the entire profile
 def rule_plurality(profile):
     score = {}
@@ -679,25 +708,74 @@ def run_copeland(grid):
     grid.cope_results()
 
 def main():
-    size = 12
-    districts = 6
-    # percentages=[30,35,35]
-    percentages=[33,33,33]
-    hotspots_on = False
-    proportion_limit = False
-    grid = Grid(size, districts, percentages, hotspots_on, proportion_limit)
-    if hotspots_on:
-        print('hotspots:')
-        print grid.hotspots
+    # We want to catch all printed output to redirect it to a file,
+    # but not lose track of the orginal stdout
+    def_stdout = sys.stdout
 
-    # run_plurality(grid)
-    # run_borda(grid)
-    run_copeland(grid)
+    # All experiment options
+    size_opt = [12]
+    num_districts = range(4,13,2)
+    hotspots_opt = [True, False]
+    prop_lim_opt = [True, False]
+    perc_opts = [[50,25,25],[33,33,33],[20,40,40],[10,45,45]]
 
-    # for dist in grid.dist_list:
-    #     print dist.get_size()
+    # The rule we are using
+    # rule = "plurality"
+    # rule = "borda"
+    rule = "copeland"
 
-    grid.print_map()
+    for size in size_opt:
+        for dist in num_districts:
+            for hot in hotspots_opt:
+                for prop in prop_lim_opt:
+                    for perc in perc_opts:
+                        # Format description of this experiment
+                        desc = ("S="+str(size)+"_D="+str(dist)+"_H="+str(hot)+"_P="+str(prop)+"_Pct="+str(perc))
+                        
+                        # Format path to save results
+                        path = "results/"+rule+"/"+desc
+
+                        # Create directory for results
+                        if not os.path.exists(path):
+                            os.makedirs(path)
+
+                        # Format result locations
+                        file = path+"/output.txt"
+                        graph = path+"/grid.png"
+
+                        # Redirect stdout to our output file
+                        f = open(file, "w")
+                        sys.stdout = f
+
+                        # Create the grid
+                        grid = Grid(size, dist, perc, hot, prop)
+                        if hot:
+                            print('hotspots:')
+                            print grid.hotspots
+
+                        # Run the algorithm
+                        # run_plurality(grid)
+                        # run_borda(grid)
+                        run_copeland(grid)
+
+                        # Output district sizes
+                        for district in grid.dist_list:
+                            print district.get_size()
+
+                        # Reset stdout and close the file
+                        sys.stdout = def_stdout
+                        f.close()
+
+                        # Save the grid
+                        grid.save_map(graph)
+
+                        # Output results to stdout for completeness
+                        print(desc)
+                        print("------------")
+                        f = open(file, 'r')
+                        print f.read()
+                        f.close()
+                        print("\n\n")
 
 if __name__ == "__main__":
     main()
