@@ -1,0 +1,16 @@
+hotspots:
+[(5, 11), (10, 3), (11, 10)]
+borda score:
+{'a': 90, 'c': 166, 'b': 176}
+the gerrimanderer has conquered 0 districts out of 10 when 6 were possible
+the gerrimanderer has achieved a percentage of 0.0 instead of 0.21
+18
+13
+17
+12
+12
+18
+12
+18
+12
+12

@@ -1,0 +1,14 @@
+hotspots:
+[(4, 1), (9, 8), (10, 1)]
+copeland score:
+{'ac': -52, 'ab': -48, 'ba': 48, 'bc': 4, 'cb': -4, 'ca': 52}
+the gerrimanderer has conquered 1 districts out of 8 when 4 were possible
+the gerrimanderer has achieved a percentage of 0.13 instead of 0.22
+18
+18
+18
+19
+18
+18
+18
+17

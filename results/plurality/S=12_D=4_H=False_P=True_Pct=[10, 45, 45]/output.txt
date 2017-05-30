@@ -1,0 +1,8 @@
+plurality score:
+{'a': 3, 'c': 73, 'b': 68}
+the gerrimanderer has conquered 0 districts out of 4 when 0 were possible
+the gerrimanderer has achieved a percentage of 0.0 instead of 0.02
+35
+36
+37
+36

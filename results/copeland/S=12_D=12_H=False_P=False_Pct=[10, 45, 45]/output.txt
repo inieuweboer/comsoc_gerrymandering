@@ -1,0 +1,16 @@
+copeland score:
+{'ac': -112, 'ab': -104, 'ba': 104, 'bc': 4, 'cb': -4, 'ca': 112}
+the gerrimanderer has conquered 0 districts out of 12 when 2 were possible
+the gerrimanderer has achieved a percentage of 0.0 instead of 0.08
+12
+11
+12
+12
+12
+13
+12
+12
+12
+12
+12
+12

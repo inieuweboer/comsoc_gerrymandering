@@ -1,0 +1,10 @@
+borda score:
+{'a': 228, 'c': 97, 'b': 107}
+the gerrimanderer has conquered 6 districts out of 6 when 9 were possible
+the gerrimanderer has achieved a percentage of 1.0 instead of 0.53
+24
+24
+24
+24
+24
+24

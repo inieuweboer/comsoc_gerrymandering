@@ -1,0 +1,12 @@
+plurality score:
+{'a': 48, 'c': 52, 'b': 44}
+the gerrimanderer has conquered 3 districts out of 8 when 6 were possible
+the gerrimanderer has achieved a percentage of 0.38 instead of 0.33
+18
+18
+18
+17
+18
+19
+18
+18

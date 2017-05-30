@@ -1,0 +1,12 @@
+hotspots:
+[(4, 9), (4, 3), (9, 11)]
+plurality score:
+{'a': 48, 'c': 51, 'b': 45}
+the gerrimanderer has conquered 3 districts out of 6 when 5 were possible
+the gerrimanderer has achieved a percentage of 0.5 instead of 0.33
+24
+25
+24
+23
+24
+24
