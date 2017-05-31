@@ -323,7 +323,7 @@ class Grid:
         percentage = round(rule_plurality(self.profile())['a'] / float(self.size * self.size), 2)
         plur_conquer = self.plur_conquer()
         print('the gerrimanderer has conquered ' + str(len(conquered_districts)) + ' districts out of ' + str(self.districts) 
-                    + ' when ' + str(plur_conquer) + ' were possible')
+                    + ' when ' + str(min(plur_conquer, self.districts)) + ' were possible')
         print('the gerrimanderer has achieved a percentage of ' + str(dist_percentage) + ' instead of ' + str(percentage))
 
         return (percentage, dist_percentage)
@@ -432,7 +432,7 @@ class Grid:
         percentage = round(rule_borda(self.profile())['a'] / float(self.size * self.size * 3), 2)
         borda_conquer = self.borda_conquer()
         print('the gerrimanderer has conquered ' + str(len(conquered_districts)) + ' districts out of ' + str(self.districts) 
-                    + ' when ' + str(borda_conquer) + ' were possible')
+                    + ' when ' + str(min(borda_conquer, self.districts)) + ' were possible')
         print('the gerrimanderer has achieved a percentage of ' + str(dist_percentage) + ' instead of ' + str(percentage))
 
         return (percentage, dist_percentage)
@@ -541,7 +541,7 @@ class Grid:
         percentage = round(rule_borda(self.profile())['a'] / float(self.size * self.size * 3), 2)
         cope_conquer = self.cope_conquer()
         print('the gerrimanderer has conquered ' + str(len(conquered_districts)) + ' districts out of ' + str(self.districts) 
-                    + ' when ' + str(cope_conquer) + ' were possible')
+                    + ' when ' + str(min(cope_conquer, self.districts)) + ' were possible')
         print('the gerrimanderer has achieved a percentage of ' + str(dist_percentage) + ' instead of ' + str(percentage))
 
         return (percentage, dist_percentage)
