@@ -161,7 +161,7 @@ class District:
 
 
 class Grid:
-    def __init__(self, size, districts, percentages, hot_on, prop_lim):
+    def __init__(self, size, districts, percentages, hot_on, prop_lim, hotspots=[]):
         self.size = size
         self.grid = {}
         self.rule = ''
@@ -172,6 +172,8 @@ class Grid:
         self.prop_lim = prop_lim
         if hot_on:
             self.hotspots = self.hotspots()
+        if len(hotspots) > 0:
+            self.hotspots = hotspots
         self.districts = districts
         self.dist_list = []
         # creates the districts
@@ -260,9 +262,11 @@ class Grid:
     # divides the neighbour voters of a district in groups from the best the district could get to the worst, then asks the neighbour's district
     # and the grid if one of the voters can be acquired
     def plur_step(self, dist, last_dist=-1):
+        # the neighbours considered must not belong to the previous active district that took a voter from the current one
         neighbours = [neighbour for neighbour in self.dist_neighbours(dist) if neighbour.get_district() != last_dist]
         found_neighbour = False
         neighbours_by_type = []
+        # the following division in groups is based on three conditions. 1) The preference of the neighbour being 'a'. 2) The neighbour's district being to-be-conquered or not. 3) the neighbour's first preference is not a and is the one that's winning in the acquiring district
         if dist.get_conquer():
             neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
                 and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
@@ -294,6 +298,7 @@ class Grid:
             all_neighbours += neighbour_group
         for neighbour in all_neighbours:
             neighbour_dist = self.dist_list[neighbour.get_district()]
+            # ask permission to acquire the neighbour both to her district and to the grid
             if neighbour_dist.plur_ask(neighbour) and self.ask(neighbour):
                 found_neighbour = True
                 dist.add_voter(neighbour)
@@ -349,9 +354,11 @@ class Grid:
     # divides the neighbour voters of a district in groups from the best the district could get to the worst, then asks the neighbour's district
     # and the grid if any of the voters can be exchanged
     def borda_step(self, dist, last_dist=-1):
+        # the neighbours considered must not belong to the previous active district that took a voter from the current one
         neighbours = [neighbour for neighbour in self.dist_neighbours(dist) if neighbour.get_district() != last_dist]
         found_neighbour = False
         neighbours_by_type = []
+        # the following division in groups is based on three conditions. 1) The position of alternative 'a' in the neighbour's preference order. 2) The neighbour's district being to-be-conquered or not. 3) the neighbour's first preference is not a and is the one that's winning in the acquiring district
         if dist.get_conquer():
             neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
                 and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
@@ -403,6 +410,7 @@ class Grid:
             all_neighbours += neighbour_group
         for neighbour in all_neighbours:
             neighbour_dist = self.dist_list[neighbour.get_district()]
+            # ask permission to acquire the neighbour both to her district and to the grid
             if neighbour_dist.borda_ask(neighbour) and self.ask(neighbour):
                 found_neighbour = True
                 dist.add_voter(neighbour)
@@ -458,9 +466,11 @@ class Grid:
     # divides the neighbour voters of a district in groups from the best the district could get to the worst, then asks the neighbour's district
     # and the grid if any of the voters can be exchanged
     def cope_step(self, dist, last_dist=-1):
+        # the neighbours considered must not belong to the previous active district that took a voter from the current one
         neighbours = [neighbour for neighbour in self.dist_neighbours(dist) if neighbour.get_district() != last_dist]
         found_neighbour = False
         neighbours_by_type = []
+        # the following division in groups is based on three conditions. 1) The position of alternative 'a' in the neighbour's preference order. 2) The neighbour's district being to-be-conquered or not. 3) the neighbour's first preference is not a and is the one that's winning in the acquiring district
         if dist.get_conquer():
             neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
                 and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
@@ -512,6 +522,7 @@ class Grid:
             all_neighbours += neighbour_group
         for neighbour in all_neighbours:
             neighbour_dist = self.dist_list[neighbour.get_district()]
+            # ask permission to acquire the neighbour both to her district and to the grid
             if neighbour_dist.cope_ask(neighbour) and self.ask(neighbour):
                 found_neighbour = True
                 dist.add_voter(neighbour)
@@ -661,6 +672,17 @@ class Grid:
         ax.imshow(image, interpolation ='none', aspect = 'auto')
         plt.savefig(destination)
 
+    def set_districts(self, districts):
+        self.dist_list = districts
+        for dist in self.dist_list:
+            voters = dist.get_voter()[:]
+            for voter in voters:
+                dist.add_voter(self.grid[voter.get_x()][voter.get_y()])
+                dist.remove_voter(voter)
+
+    def set_rule(self, rule):
+        self.rule = rule
+
 # calculates plurality on the entire profile
 def rule_plurality(profile):
     score = {}
@@ -694,7 +716,7 @@ def rule_copeland(profile):
 def run_plurality(grid):
     print('plurality score:')
     print rule_plurality(grid.profile())
-    grid.plur_gerry()
+    districts = grid.plur_gerry()
     return grid.plur_results()
 
 def run_borda(grid):
@@ -709,209 +731,220 @@ def run_copeland(grid):
     grid.cope_gerry()
     return grid.cope_results()
 
+def plur_again(grid):
+    districts = grid.dist_list[:]
+    new_grid = Grid(12, 6, [33,33,33], True, False, grid.hotspots)
+    new_grid.set_districts(districts)
+    new_grid.set_rule('plurality')
+    print('plurality score:')
+    print rule_plurality(new_grid.profile())
+    new_grid.plur_results()
+    return new_grid
+
 def main():
 
-    percentages = range(1, 101)
+    # Create the grid
+    grid = Grid(12, 6, [33,33,33], True, False)
+    if True:
+        print('hotspots:')
+        print grid.hotspots
 
-    districts = 6
-    runs = 5
+    # Run the algorithm
+    run_plurality(grid)
+    # run_borda(grid)
+    # run_copeland(grid)
+    grid.print_map()
 
-    results_hotspots = {}
-    results_hotspots_appeared = {x:0 for x in range(101)}
-    results_no_hotspots = {}
-    results_no_hotspots_appeared = {x:0 for x in range(101)}
+    new_grid = plur_again(grid)
 
-    # -------------------------------------------------------------------------
-    #                               PLURALITY
-    # -------------------------------------------------------------------------
+    new_grid.print_map()
 
-    for run in range(runs):
-        for percentage in percentages:
+    # percentages = range(1, 101)
 
-            print("Run: " + str(run + 1) + "/" + str(runs) + ", percentage: " + str(percentage))
+    # districts = 6
+    # runs = 5
 
-            remainder = 100 - percentage
-            p_party_b = math.floor(remainder / 2.0)
-            p_party_c = remainder - p_party_b
+    # results_hotspots = {}
+    # results_hotspots_appeared = {x:0 for x in range(101)}
+    # results_no_hotspots = {}
+    # results_no_hotspots_appeared = {x:0 for x in range(101)}
 
-            perc = [percentage, p_party_b, p_party_c]
+    # # -------------------------------------------------------------------------
+    # #                               PLURALITY
+    # # -------------------------------------------------------------------------
 
-            grid = Grid(12, districts, perc, True, True)
+    # for run in range(runs):
+    #     for percentage in percentages:
 
-            x = run_plurality(grid)
+    #         print("Run: " + str(run + 1) + "/" + str(runs) + ", percentage: " + str(percentage))
 
-            round_true_perc = int(round(x[0] * 100))
-            round_gerry_perc = int(round(x[1] * 100)) 
-            avg_gerry_perc = round_gerry_perc
-            if results_hotspots_appeared[round_true_perc] > 0:
-                appears = results_hotspots_appeared[round_true_perc]
-                avg_gerry_perc = ((results_hotspots[round_true_perc] * appears) + round_gerry_perc) / float(appears + 1)
+    #         remainder = 100 - percentage
+    #         p_party_b = math.floor(remainder / 2.0)
+    #         p_party_c = remainder - p_party_b
 
-            results_hotspots[round_true_perc] = avg_gerry_perc
-            results_hotspots_appeared[round_true_perc] += 1
+    #         perc = [percentage, p_party_b, p_party_c]
 
-            grid = Grid(12, districts, perc, False, True)
+    #         grid = Grid(12, districts, perc, True, True)
 
-            x = run_plurality(grid)
+    #         x = run_plurality(grid)
 
-            round_true_perc = int(round(x[0] * 100))
-            round_gerry_perc = int(round(x[1] * 100)) 
-            avg_gerry_perc = round_gerry_perc
-            if results_no_hotspots_appeared[round_true_perc] > 0:
-                appears = results_no_hotspots_appeared[round_true_perc]
-                avg_gerry_perc = ((results_no_hotspots[round_true_perc] * appears) + round_gerry_perc) / float(appears + 1)
+    #         round_true_perc = int(round(x[0] * 100))
+    #         round_gerry_perc = int(round(x[1] * 100)) 
+    #         avg_gerry_perc = round_gerry_perc
+    #         if results_hotspots_appeared[round_true_perc] > 0:
+    #             appears = results_hotspots_appeared[round_true_perc]
+    #             avg_gerry_perc = ((results_hotspots[round_true_perc] * appears) + round_gerry_perc) / float(appears + 1)
 
-            results_no_hotspots[round_true_perc] = avg_gerry_perc
-            results_no_hotspots_appeared[round_true_perc] += 1
+    #         results_hotspots[round_true_perc] = avg_gerry_perc
+    #         results_hotspots_appeared[round_true_perc] += 1
 
-    results_hotspots = collections.OrderedDict(sorted(results_hotspots.items()))
-    results_no_hotspots = collections.OrderedDict(sorted(results_no_hotspots.items()))
+    #         grid = Grid(12, districts, perc, False, True)
 
-    plt.figure()
-    plt.title('Gerrymandering results for the plurality rule with proportion restriction')
-    plt.plot(results_hotspots.keys(), results_hotspots.values(), 'r-o', label="with hotspots")
-    plt.plot(results_no_hotspots.keys(), results_no_hotspots.values(), 'b-o', label="without hotspots")
-    plt.xlabel('Actual percentage')
-    plt.ylabel('Gerrymandered percentage')
-    plt.legend(loc="upper left")
-    plt.savefig("results/graphs/plurality_proportion.png")
+    #         x = run_plurality(grid)
 
-    # -------------------------------------------------------------------------
-    #                                 BORDA
-    # -------------------------------------------------------------------------
+    #         round_true_perc = int(round(x[0] * 100))
+    #         round_gerry_perc = int(round(x[1] * 100)) 
+    #         avg_gerry_perc = round_gerry_perc
+    #         if results_no_hotspots_appeared[round_true_perc] > 0:
+    #             appears = results_no_hotspots_appeared[round_true_perc]
+    #             avg_gerry_perc = ((results_no_hotspots[round_true_perc] * appears) + round_gerry_perc) / float(appears + 1)
+
+    #         results_no_hotspots[round_true_perc] = avg_gerry_perc
+    #         results_no_hotspots_appeared[round_true_perc] += 1
+
+    # results_hotspots = collections.OrderedDict(sorted(results_hotspots.items()))
+    # results_no_hotspots = collections.OrderedDict(sorted(results_no_hotspots.items()))
+
+    # plt.figure()
+    # plt.title('Gerrymandering results for the plurality rule with proportion restriction')
+    # plt.plot(results_hotspots.keys(), results_hotspots.values(), 'r-o', label="with hotspots")
+    # plt.plot(results_no_hotspots.keys(), results_no_hotspots.values(), 'b-o', label="without hotspots")
+    # plt.xlabel('Actual percentage')
+    # plt.ylabel('Gerrymandered percentage')
+    # plt.legend(loc="upper left")
+    # plt.savefig("results/graphs/plurality_proportion.png")
+
+    # # -------------------------------------------------------------------------
+    # #                                 BORDA
+    # # -------------------------------------------------------------------------
     
-    results_hotspots = {}
-    results_hotspots_appeared = {x:0 for x in range(101)}
-    results_no_hotspots = {}
-    results_no_hotspots_appeared = {x:0 for x in range(101)}
+    # results_hotspots = {}
+    # results_hotspots_appeared = {x:0 for x in range(101)}
+    # results_no_hotspots = {}
+    # results_no_hotspots_appeared = {x:0 for x in range(101)}
     
-    for run in range(runs):
-        for percentage in percentages:
+    # for run in range(runs):
+    #     for percentage in percentages:
 
-            print("Run: " + str(run + 1) + "/" + str(runs) + ", percentage: " + str(percentage))
+    #         print("Run: " + str(run + 1) + "/" + str(runs) + ", percentage: " + str(percentage))
 
-            remainder = 100 - percentage
-            p_party_b = math.floor(remainder / 2.0)
-            p_party_c = remainder - p_party_b
+    #         remainder = 100 - percentage
+    #         p_party_b = math.floor(remainder / 2.0)
+    #         p_party_c = remainder - p_party_b
 
-            perc = [percentage, p_party_b, p_party_c]
+    #         perc = [percentage, p_party_b, p_party_c]
 
-            grid = Grid(12, districts, perc, True, True)
+    #         grid = Grid(12, districts, perc, True, True)
 
-            x = run_borda(grid)
+    #         x = run_borda(grid)
 
-            round_true_perc = int(round(x[0] * 100))
-            round_gerry_perc = int(round(x[1] * 100)) 
-            avg_gerry_perc = round_gerry_perc
-            if results_hotspots_appeared[round_true_perc] > 0:
-                appears = results_hotspots_appeared[round_true_perc]
-                avg_gerry_perc = ((results_hotspots[round_true_perc] * appears) + round_gerry_perc) / float(appears + 1)
+    #         round_true_perc = int(round(x[0] * 100))
+    #         round_gerry_perc = int(round(x[1] * 100)) 
+    #         avg_gerry_perc = round_gerry_perc
+    #         if results_hotspots_appeared[round_true_perc] > 0:
+    #             appears = results_hotspots_appeared[round_true_perc]
+    #             avg_gerry_perc = ((results_hotspots[round_true_perc] * appears) + round_gerry_perc) / float(appears + 1)
 
-            results_hotspots[round_true_perc] = avg_gerry_perc
-            results_hotspots_appeared[round_true_perc] += 1
+    #         results_hotspots[round_true_perc] = avg_gerry_perc
+    #         results_hotspots_appeared[round_true_perc] += 1
 
-            grid = Grid(12, districts, perc, False, True)
+    #         grid = Grid(12, districts, perc, False, True)
 
-            x = run_borda(grid)
+    #         x = run_borda(grid)
 
-            round_true_perc = int(round(x[0] * 100))
-            round_gerry_perc = int(round(x[1] * 100)) 
-            avg_gerry_perc = round_gerry_perc
-            if results_no_hotspots_appeared[round_true_perc] > 0:
-                appears = results_no_hotspots_appeared[round_true_perc]
-                avg_gerry_perc = ((results_no_hotspots[round_true_perc] * appears) + round_gerry_perc) / float(appears + 1)
+    #         round_true_perc = int(round(x[0] * 100))
+    #         round_gerry_perc = int(round(x[1] * 100)) 
+    #         avg_gerry_perc = round_gerry_perc
+    #         if results_no_hotspots_appeared[round_true_perc] > 0:
+    #             appears = results_no_hotspots_appeared[round_true_perc]
+    #             avg_gerry_perc = ((results_no_hotspots[round_true_perc] * appears) + round_gerry_perc) / float(appears + 1)
 
-            results_no_hotspots[round_true_perc] = avg_gerry_perc
-            results_no_hotspots_appeared[round_true_perc] += 1
+    #         results_no_hotspots[round_true_perc] = avg_gerry_perc
+    #         results_no_hotspots_appeared[round_true_perc] += 1
 
-    results_hotspots = collections.OrderedDict(sorted(results_hotspots.items()))
-    results_no_hotspots = collections.OrderedDict(sorted(results_no_hotspots.items()))
+    # results_hotspots = collections.OrderedDict(sorted(results_hotspots.items()))
+    # results_no_hotspots = collections.OrderedDict(sorted(results_no_hotspots.items()))
 
-    plt.figure()
-    plt.title('Gerrymandering results for the borda rule with proportion restriction')
-    plt.plot(results_hotspots.keys(), results_hotspots.values(), 'r-o', label="with hotspots")
-    plt.plot(results_no_hotspots.keys(), results_no_hotspots.values(), 'b-o', label="without hotspots")
-    plt.xlabel('Actual percentage')
-    plt.ylabel('Gerrymandered percentage')
-    plt.legend(loc="upper left")
-    plt.savefig("results/graphs/borda_proportion.png")
+    # plt.figure()
+    # plt.title('Gerrymandering results for the borda rule with proportion restriction')
+    # plt.plot(results_hotspots.keys(), results_hotspots.values(), 'r-o', label="with hotspots")
+    # plt.plot(results_no_hotspots.keys(), results_no_hotspots.values(), 'b-o', label="without hotspots")
+    # plt.xlabel('Actual percentage')
+    # plt.ylabel('Gerrymandered percentage')
+    # plt.legend(loc="upper left")
+    # plt.savefig("results/graphs/borda_proportion.png")
 
-    # -------------------------------------------------------------------------
-    #                               COPELAND
-    # -------------------------------------------------------------------------
+    # # -------------------------------------------------------------------------
+    # #                               COPELAND
+    # # -------------------------------------------------------------------------
     
-    results_hotspots = {}
-    results_hotspots_appeared = {x:0 for x in range(101)}
-    results_no_hotspots = {}
-    results_no_hotspots_appeared = {x:0 for x in range(101)}
+    # results_hotspots = {}
+    # results_hotspots_appeared = {x:0 for x in range(101)}
+    # results_no_hotspots = {}
+    # results_no_hotspots_appeared = {x:0 for x in range(101)}
     
-    for run in range(runs):
-        for percentage in percentages:
+    # for run in range(runs):
+    #     for percentage in percentages:
 
-            print("Run: " + str(run + 1) + "/" + str(runs) + ", percentage: " + str(percentage))
+    #         print("Run: " + str(run + 1) + "/" + str(runs) + ", percentage: " + str(percentage))
 
-            remainder = 100 - percentage
-            p_party_b = math.floor(remainder / 2.0)
-            p_party_c = remainder - p_party_b
+    #         remainder = 100 - percentage
+    #         p_party_b = math.floor(remainder / 2.0)
+    #         p_party_c = remainder - p_party_b
 
-            perc = [percentage, p_party_b, p_party_c]
+    #         perc = [percentage, p_party_b, p_party_c]
 
-            grid = Grid(12, districts, perc, True, True)
+    #         grid = Grid(12, districts, perc, True, True)
 
-            x = run_copeland(grid)
+    #         x = run_copeland(grid)
 
-            round_true_perc = int(round(x[0] * 100))
-            round_gerry_perc = int(round(x[1] * 100)) 
-            avg_gerry_perc = round_gerry_perc
-            if results_hotspots_appeared[round_true_perc] > 0:
-                appears = results_hotspots_appeared[round_true_perc]
-                avg_gerry_perc = ((results_hotspots[round_true_perc] * appears) + round_gerry_perc) / float(appears + 1)
+    #         round_true_perc = int(round(x[0] * 100))
+    #         round_gerry_perc = int(round(x[1] * 100)) 
+    #         avg_gerry_perc = round_gerry_perc
+    #         if results_hotspots_appeared[round_true_perc] > 0:
+    #             appears = results_hotspots_appeared[round_true_perc]
+    #             avg_gerry_perc = ((results_hotspots[round_true_perc] * appears) + round_gerry_perc) / float(appears + 1)
 
-            results_hotspots[round_true_perc] = avg_gerry_perc
-            results_hotspots_appeared[round_true_perc] += 1
+    #         results_hotspots[round_true_perc] = avg_gerry_perc
+    #         results_hotspots_appeared[round_true_perc] += 1
 
-            grid = Grid(12, districts, perc, False, True)
+    #         grid = Grid(12, districts, perc, False, True)
 
-            x = run_copeland(grid)
+    #         x = run_copeland(grid)
 
-            round_true_perc = int(round(x[0] * 100))
-            round_gerry_perc = int(round(x[1] * 100)) 
-            avg_gerry_perc = round_gerry_perc
-            if results_no_hotspots_appeared[round_true_perc] > 0:
-                appears = results_no_hotspots_appeared[round_true_perc]
-                avg_gerry_perc = ((results_no_hotspots[round_true_perc] * appears) + round_gerry_perc) / float(appears + 1)
+    #         round_true_perc = int(round(x[0] * 100))
+    #         round_gerry_perc = int(round(x[1] * 100)) 
+    #         avg_gerry_perc = round_gerry_perc
+    #         if results_no_hotspots_appeared[round_true_perc] > 0:
+    #             appears = results_no_hotspots_appeared[round_true_perc]
+    #             avg_gerry_perc = ((results_no_hotspots[round_true_perc] * appears) + round_gerry_perc) / float(appears + 1)
 
-            results_no_hotspots[round_true_perc] = avg_gerry_perc
-            results_no_hotspots_appeared[round_true_perc] += 1
+    #         results_no_hotspots[round_true_perc] = avg_gerry_perc
+    #         results_no_hotspots_appeared[round_true_perc] += 1
 
-    results_hotspots = collections.OrderedDict(sorted(results_hotspots.items()))
-    results_no_hotspots = collections.OrderedDict(sorted(results_no_hotspots.items()))
+    # results_hotspots = collections.OrderedDict(sorted(results_hotspots.items()))
+    # results_no_hotspots = collections.OrderedDict(sorted(results_no_hotspots.items()))
 
-    plt.figure()
-    plt.title('Gerrymandering results for the copeland rule with proportion restriction')
-    plt.plot(results_hotspots.keys(), results_hotspots.values(), 'r-o', label="with hotspots")
-    plt.plot(results_no_hotspots.keys(), results_no_hotspots.values(), 'b-o', label="without hotspots")
-    plt.xlabel('Actual percentage')
-    plt.ylabel('Gerrymandered percentage')
-    plt.legend(loc="upper left")
-    plt.savefig("results/graphs/copeland_proportion.png")
+    # plt.figure()
+    # plt.title('Gerrymandering results for the copeland rule with proportion restriction')
+    # plt.plot(results_hotspots.keys(), results_hotspots.values(), 'r-o', label="with hotspots")
+    # plt.plot(results_no_hotspots.keys(), results_no_hotspots.values(), 'b-o', label="without hotspots")
+    # plt.xlabel('Actual percentage')
+    # plt.ylabel('Gerrymandered percentage')
+    # plt.legend(loc="upper left")
+    # plt.savefig("results/graphs/copeland_proportion.png")
 
-    return
-
-        
-
-
-    # # Create the grid
-    # grid = Grid(12, 6, [33,33,33], False, False)
-    # if False:
-    #     print('hotspots:')
-    #     print grid.hotspots
-
-    # # Run the algorithm
-    # run_plurality(grid)
-    # # run_borda(grid)
-    # # run_copeland(grid)
-    # grid.print_map()
+    # return
 
     # We want to catch all printed output to redirect it to a file,
     # but not lose track of the orginal stdout
