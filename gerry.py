@@ -87,7 +87,7 @@ class District:
     # gives the permission to remove a voter if his vote is not necessary to conquer the district under plurality
     def plur_ask(self, voter):
         permission = True
-        if self.conquer and voter.get(1) == 'a' and (self.get_plurality('a') <= self.get_plurality('b') or self.get_plurality('a') <= self.get_plurality('c')):
+        if self.conquer and voter.get(1) == 'a' and (self.get_plurality('a') <= (self.get_plurality('b')+1) or self.get_plurality('a') <= (self.get_plurality('c')+1)):
             permission = False
         return permission
 
@@ -110,10 +110,10 @@ class District:
     # gives the permission to remove a voter if his vote is not necessary to conquer the district under borda
     def borda_ask(self, voter):
         permission = True
-        if self.conquer and voter.get(1) == 'a' and (self.get_borda('a') <= self.get_borda('b') or self.get_borda('a') <= self.get_borda('c')):
+        if self.conquer and voter.get(1) == 'a' and (self.get_borda('a') <= (self.get_borda('b')+2) or self.get_borda('a') <= (self.get_borda('c')+2)):
             permission = False
         # this second condition ensures that if the voter ranks the non-a alternative that is winning the district last he does not get removed from the district
-        if self.conquer and voter.get(3) != 'a' and voter.get(3) == self.borda_first() and (self.get_borda('a') <= self.get_borda('b') or self.get_borda('a') <= self.get_borda('c')):
+        if self.conquer and voter.get(3) != 'a' and voter.get(3) == self.borda_first() and (self.get_borda('a') <= (self.get_borda('b')+2) or self.get_borda('a') <= (self.get_borda('c')+2)):
             permission = False
         return permission
 
@@ -140,10 +140,10 @@ class District:
     # gives the permission to remove a voter if his vote is not necessary to conquer the district under copeland
     def cope_ask(self, voter):
         permission = True
-        if self.conquer and voter.get(1) == 'a' and (self.get_cope('ab') <= 0 or self.get_cope('ac') <= 0):
+        if self.conquer and voter.get(1) == 'a' and (self.get_cope('ab') <= 1 or self.get_cope('ac') <= 1):
             permission = False
         # this second condition ensures that if the voter ranks the non-a alternative that is winning the district last he does not get removed from the district
-        if self.conquer and voter.get(3) != 'a' and voter.get(3) == self.cope_first() and (self.get_cope('ab') <= 0 or self.get_cope('ac') <= 0):
+        if self.conquer and voter.get(3) != 'a' and voter.get(3) == self.cope_first() and (self.get_cope('ab') <= 1 or self.get_cope('ac') <= 1):
             permission = False
         return permission
 
@@ -703,6 +703,18 @@ def run_copeland(grid):
     grid.cope_results()
 
 def main():
+    # Create the grid
+    grid = Grid(12, 6, [33,33,33], False, False)
+    if False:
+        print('hotspots:')
+        print grid.hotspots
+
+    # Run the algorithm
+    run_plurality(grid)
+    # run_borda(grid)
+    # run_copeland(grid)
+    grid.print_map()
+
     # We want to catch all printed output to redirect it to a file,
     # but not lose track of the orginal stdout
     def_stdout = sys.stdout
@@ -717,66 +729,130 @@ def main():
     # The rule we are using
     # rule = "plurality"
     # rule = "borda"
-    rule = "copeland"
+    # rule = "copeland"
 
-    for size in size_opt:
-        for dist in num_districts:
-            for hot in hotspots_opt:
-                for prop in prop_lim_opt:
-                    for perc in perc_opts:
-                        # Format description of this experiment
-                        desc = ("S="+str(size)+"_D="+str(dist)+"_H="+str(hot)+"_P="+str(prop)+"_Pct="+str(perc))
+    # for size in size_opt:
+    #     for dist in num_districts:
+    #         for hot in hotspots_opt:
+    #             for prop in prop_lim_opt:
+    #                 for perc in perc_opts:
+    #                     # Format description of this experiment
+    #                     desc = ("S="+str(size)+"_D="+str(dist)+"_H="+str(hot)+"_P="+str(prop)+"_Pct="+str(perc))
                         
-                        # Format path to save results
-                        path = "results/"+rule+"/"+desc
+    #                     # Format path to save results
+    #                     path = "results/"+rule+"/"+desc
 
-                        # Create directory for results
-                        if not os.path.exists(path):
-                            os.makedirs(path)
+    #                     # Create directory for results
+    #                     if not os.path.exists(path):
+    #                         os.makedirs(path)
 
-                        # Format result locations
-                        file = path+"/output.txt"
-                        graph = path+"/grid.png"
+    #                     # Format result locations
+    #                     file = path+"/output.txt"
+    #                     graph = path+"/grid.png"
 
-                        # Redirect stdout to our output file
-                        f = open(file, "w")
-                        sys.stdout = f
+    #                     # Redirect stdout to our output file
+    #                     f = open(file, "w")
+    #                     sys.stdout = f
 
-                        # Create the grid
-                        grid = Grid(size, dist, perc, hot, prop)
-                        if hot:
-                            print('hotspots:')
-                            print grid.hotspots
+    #                     # Create the grid
+    #                     grid = Grid(size, dist, perc, hot, prop)
+    #                     if hot:
+    #                         print('hotspots:')
+    #                         print grid.hotspots
 
-                        # Run the algorithm
-                        # run_plurality(grid)
-                        # run_borda(grid)
-                        run_copeland(grid)
+    #                     # Run the algorithm
+    #                     # run_plurality(grid)
+    #                     # run_borda(grid)
+    #                     run_copeland(grid)
 
-                        # Output district sizes
-                        for district in grid.dist_list:
-                            print district.get_size()
+    #                     # Output district sizes
+    #                     for district in grid.dist_list:
+    #                         print district.get_size()
 
-                        # Reset stdout and close the file
-                        sys.stdout = def_stdout
-                        f.close()
+    #                     # Reset stdout and close the file
+    #                     sys.stdout = def_stdout
+    #                     f.close()
 
-                        # Save the grid
-                        grid.save_map(graph)
+    #                     # Save the grid
+    #                     grid.save_map(graph)
 
-                        # Output results to stdout for completeness
-                        print(desc)
-                        print("------------")
-                        f = open(file, 'r')
-                        print f.read()
-                        f.close()
-                        print("\n\n")
+    #                     # Output results to stdout for completeness
+    #                     print(desc)
+    #                     print("------------")
+    #                     f = open(file, 'r')
+    #                     print f.read()
+    #                     f.close()
+    #                     print("\n\n")
 
 if __name__ == "__main__":
     main()
 
 
 # ___BIN___
+
+    # ___AVOID LAST TWO DISTS___
+    # sets the districts where 'a' has more voters as to-be-conquered, then runs the iterative voter exchange process for plurality
+    # def plur_gerry(self):
+    #     self.rule = 'plurality'
+    #     plur_conquer = self.plur_conquer()
+    #     scores_in_dists = np.array([dist.get_plurality('a') for dist in self.dist_list])
+    #     ranks = scores_in_dists.argsort()[::-1]
+    #     # if plur_conquer / float(self.districts) > 0.5:
+    #     #     plur_conquer -= 1
+    #     for i in range(min(plur_conquer, self.districts)):
+    #         self.dist_list[ranks[i]].set_conquer(True)
+    #     first_dist = random.choice(self.dist_list)
+    #     found_neighbour, new_district, old_dists, last_voter = self.plur_step(first_dist)
+    #     max_iterations = 300
+    #     iteration = 0
+    #     while found_neighbour and (self.plur_victory(plur_conquer) == False) and (iteration < max_iterations):
+    #         found_neighbour, new_district, old_dists, last_voter = self.plur_step(new_district, old_dists)
+    #         iteration += 1
+    # divides the neighbour voters of a district in groups from the best the district could get to the worst, then asks the neighbour's district
+    # and the grid if one of the voters can be acquired
+    # def plur_step(self, dist, last_dists=[-1,-1]):
+    #     neighbours = [neighbour for neighbour in self.dist_neighbours(dist) if neighbour.get_district() not in last_dists]
+    #     found_neighbour = False
+    #     neighbours_by_type = []
+    #     if dist.get_conquer():
+    #         neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
+    #             and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+    #         neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
+    #             and self.dist_list[neighbour.get_district()].get_conquer()])
+    #         neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a' and neighbour.get(1) != dist.plur_first()
+    #             and self.dist_list[neighbour.get_district()].get_conquer()])
+    #         neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a' and neighbour.get(1) != dist.plur_first()
+    #             and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+    #         neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a' and neighbour.get(1) == dist.plur_first()
+    #             and self.dist_list[neighbour.get_district()].get_conquer()])
+    #         neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a' and neighbour.get(1) == dist.plur_first()
+    #             and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+    #     else:
+    #         neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a'
+    #             and self.dist_list[neighbour.get_district()].plur_first() == neighbour.get(1)
+    #             and self.dist_list[neighbour.get_district()].get_conquer()])
+    #         neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a'
+    #             and self.dist_list[neighbour.get_district()].plur_first() != neighbour.get(1)
+    #             and self.dist_list[neighbour.get_district()].get_conquer()])
+    #         neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a'
+    #             and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+    #         neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
+    #             and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+    #         neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
+    #             and self.dist_list[neighbour.get_district()].get_conquer()])
+    #     all_neighbours = []
+    #     for neighbour_group in neighbours_by_type:
+    #         all_neighbours += neighbour_group
+    #     for neighbour in all_neighbours:
+    #         neighbour_dist = self.dist_list[neighbour.get_district()]
+    #         if neighbour_dist.plur_ask(neighbour) and self.ask(neighbour):
+    #             found_neighbour = True
+    #             dist.add_voter(neighbour)
+    #             neighbour_dist.remove_voter(neighbour)
+    #             break;
+    #     last_dists.append(dist.get_number())
+    #     del last_dists[0]
+    #     return found_neighbour, neighbour_dist, last_dists, neighbour
 
     # HOW TO EVEN THE NUMBER OF VOTERS PER DISTRICT
     # one district gets one too many voters and another gets one less correction - work in progress
@@ -817,6 +893,7 @@ if __name__ == "__main__":
     #     if self.get_borda('a') >= min_points:
     #         victory = True
     #     return victory
+
     # ___OLD ASK___
     # def ask(self, x, y):
     #     voter = self.grid[x][y]
