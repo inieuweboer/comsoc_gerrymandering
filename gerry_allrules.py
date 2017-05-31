@@ -711,10 +711,10 @@ def run_copeland(grid):
 
 def main():
 
-    percentages = range(1, 101, 2)
+    percentages = range(1, 101)
 
     districts = 6
-    runs = 1
+    runs = 4
 
     results_plurality = {}
     results_plurality_appeared = {x:0 for x in range(101)}
