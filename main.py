@@ -25,19 +25,21 @@ def run_copeland(grid):
     grid.cope_gerry()
     return grid.cope_results()
 
-def plur_again(grid):
+def plur_again(grid, rule):
     districts = grid.dist_list[:]
     new_grid = Grid(12, 6, [33,33,33], True, False, grid.hotspots)
     new_grid.set_districts(districts)
     new_grid.set_rule('plurality')
     print('plurality score:')
-    print rule_plurality(new_grid.profile())
-    new_grid.plur_results()
+    print rule.calculate_score(new_grid.profile())
+    rule.results(grid) #new_grid.plur_results()
     return new_grid
 
 
 def main():
     show = True
+    save = False
+    destination = "graphs/"
 
     # Create the grid
     grid = Grid(12, 6, [33,33,33], True, False)
@@ -46,18 +48,22 @@ def main():
         print grid.hotspots
 
     # Run the algorithm
-    run_plurality(grid)
+    plur = Plurality()
+    plur.run_gerry(grid) #run_plurality(grid)
     # run_borda(grid)
     # run_copeland(grid)
     grid.prepare_map()
 
-    new_grid = plur_again(grid)
+    new_grids = []
 
-    new_grid.prepare_map()
+    for i in xrange(20):
+        new_grids.append(plur_again(grid, plur))
+
+    #new_grid.prepare_map()
 
     if show:
         plt.show()
-    else:
+    if save:
         plt.savefig(destination)
 
 
