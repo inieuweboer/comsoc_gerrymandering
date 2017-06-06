@@ -90,15 +90,22 @@ class Grid:
             divisor -= 1
         return divisor, self.districts / divisor
 
+    # decreases by one the number of districts to be conquered if the algorithm can't conquer all of those possible
+    def plur_decrease(self, plur_conquer):
+        scores_in_dists = np.array([dist.get_plurality('a') for dist in self.dist_list])
+        ranks = scores_in_dists.argsort()[::-1]
+        for i in range(self.districts):
+            self.dist_list[i].set_conquer(False)
+        for i in range(plur_conquer):
+            self.dist_list[ranks[i]].set_conquer(True)
+
     # sets the districts where 'a' has more voters as to-be-conquered, then runs the iterative voter exchange process for plurality
     def plur_gerry(self):
         self.rule = 'plurality'
         plur_conquer = self.plur_conquer()
         scores_in_dists = np.array([dist.get_plurality('a') for dist in self.dist_list])
         ranks = scores_in_dists.argsort()[::-1]
-        # if plur_conquer / float(self.districts) > 0.5:
-        #     plur_conquer -= 1
-        for i in range(min(plur_conquer, self.districts)):
+        for i in range(plur_conquer):
             self.dist_list[ranks[i]].set_conquer(True)
         first_dist = random.choice(self.dist_list)
         found_neighbour, new_district, old_district, last_voter = self.plur_step(first_dist)
@@ -107,6 +114,12 @@ class Grid:
         while found_neighbour and (self.plur_victory(plur_conquer) == False) and (iteration < max_iterations):
             found_neighbour, new_district, old_district, last_voter = self.plur_step(new_district, old_district)
             iteration += 1
+            if (iteration % 100) == 0 and (self.plur_victory(plur_conquer) == False):
+                print "decreased the number of to-be-conquered districts"
+                plur_conquer -= 1
+                self.plur_decrease(plur_conquer)
+            if (found_neighbour == False):
+                print "no neighbour found"
 
     # divides the neighbour voters of a district in groups from the best the district could get to the worst, then asks the neighbour's district
     # and the grid if one of the voters can be acquired
@@ -129,19 +142,6 @@ class Grid:
                 and self.dist_list[neighbour.get_district()].get_conquer()])
             neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a' and neighbour.get(1) == dist.plur_first()
                 and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
-            # ___PRIORATIZE NON TBC___
-            # neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
-            #     and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
-            # neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
-            #     and self.dist_list[neighbour.get_district()].get_conquer()])
-            # neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a' and neighbour.get(1) != dist.plur_first()
-            #     and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
-            # neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a' and neighbour.get(1) == dist.plur_first()
-            #     and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
-            # neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a' and neighbour.get(1) != dist.plur_first()
-            #     and self.dist_list[neighbour.get_district()].get_conquer()])
-            # neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a' and neighbour.get(1) == dist.plur_first()
-            #     and self.dist_list[neighbour.get_district()].get_conquer()])
         else:
             neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a'
                 and self.dist_list[neighbour.get_district()].plur_first() == neighbour.get(1)
@@ -180,7 +180,7 @@ class Grid:
     def plur_conquer(self):
         points = rule_plurality(self.profile())['a']
         points_to_win_a_dist = int(((self.size * self.size) / self.districts) / 3) + 1
-        plur_conquer = int(points / points_to_win_a_dist)
+        plur_conquer = min(int(points / points_to_win_a_dist), self.districts)
         return plur_conquer
 
     # prints the results of the plurality run
@@ -190,7 +190,7 @@ class Grid:
         percentage = round(rule_plurality(self.profile())['a'] / float(self.size * self.size), 2)
         plur_conquer = self.plur_conquer()
         print('the gerrimanderer has conquered ' + str(len(conquered_districts)) + ' districts out of ' + str(self.districts) 
-                    + ' when ' + str(min(plur_conquer, self.districts)) + ' were possible')
+                    + ' when ' + str(plur_conquer) + ' were possible')
         print('the gerrimanderer has achieved a percentage of ' + str(dist_percentage) + ' instead of ' + str(percentage))
 
         return (percentage, dist_percentage)
@@ -459,7 +459,7 @@ class Grid:
                     inner = False
             if inner:
                 inner_voters.append(voter)
-        if len(inner_voters) < int(len(voters) / 4):
+        if len(inner_voters) < int(len(voters) / 3):
             approve = False
         return approve
 

@@ -46,33 +46,33 @@ def main():
     proportion_limit = False
 
     # ___ITERATED EXPERIMENTS___
-    # for i in range(5):
-    #     grid = Grid(size, districts, percentages, hotspot_on, proportion_limit)
-    #     # run_copeland(grid)
-    #     run_plurality(grid)
+    for i in range(5):
+        grid = Grid(size, districts, percentages, hotspot_on, proportion_limit)
+        # run_copeland(grid)
+        run_plurality(grid)
 
     # ___SINGLE EXPERIMENT___
-    # Create the grid
-    grid = Grid(size, districts, percentages, hotspot_on, proportion_limit)
-    if hotspot_on:
-        print('hotspots:')
-        print grid.hotspots
+    # # Create the grid
+    # grid = Grid(size, districts, percentages, hotspot_on, proportion_limit)
+    # if hotspot_on:
+    #     print('hotspots:')
+    #     print grid.hotspots
 
-    # Run the algorithm
-    run_plurality(grid)
-    # run_borda(grid)
-    # run_copeland(grid)
+    # # Run the algorithm
+    # run_plurality(grid)
+    # # run_borda(grid)
+    # # run_copeland(grid)
 
-    grid.prepare_map()
+    # grid.prepare_map()
 
-    # Run again with same districts and same hotspots
-    # new_grid = plur_again(grid)
-    # new_grid.prepare_map()
+    # # Run again with same districts and same hotspots
+    # # new_grid = plur_again(grid)
+    # # new_grid.prepare_map()
 
-    if show:
-        plt.show()
-    else:
-        plt.savefig(destination)
+    # if show:
+    #     plt.show()
+    # else:
+    #     plt.savefig(destination)
 
 
     # ___MULTIPLE EXPERIMENTS___
