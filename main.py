@@ -42,16 +42,19 @@ def main():
     size = 12
     districts = 6
     percentages = [33,33,33]
-    hotspot_on = False
+    hotspot_on = True
     proportion_limit = False
 
     # ___ITERATED EXPERIMENTS___
+
     for i in range(5):
         grid = Grid(size, districts, percentages, hotspot_on, proportion_limit)
-        # run_copeland(grid)
         run_plurality(grid)
+        # run_borda(grid)
+        # run_copeland(grid)
 
     # ___SINGLE EXPERIMENT___
+
     # # Create the grid
     # grid = Grid(size, districts, percentages, hotspot_on, proportion_limit)
     # if hotspot_on:
@@ -76,8 +79,8 @@ def main():
 
 
     # ___MULTIPLE EXPERIMENTS___
-    # percentages = range(1, 101)
 
+    # percentages = range(1, 101)
     # districts = 6
     # runs = 5
 

@@ -201,8 +201,6 @@ class Grid:
         borda_conquer = self.borda_conquer()
         scores_in_dists = np.array([dist.get_borda('a') for dist in self.dist_list])
         ranks = scores_in_dists.argsort()[::-1]
-        # if borda_conquer / float(self.districts) > 0.5:
-        #     borda_conquer -= 1
         for i in range(min(borda_conquer, self.districts)):
             self.dist_list[ranks[i]].set_conquer(True)
         first_dist = random.choice(self.dist_list)
@@ -212,6 +210,21 @@ class Grid:
         while found_neighbour and (self.borda_victory(borda_conquer) == False) and (iteration < max_iterations):
             found_neighbour, new_district, old_district, last_voter = self.borda_step(new_district, old_district)
             iteration += 1
+            if (iteration % 100) == 0 and (self.borda_victory(borda_conquer) == False):
+                print "decreased the number of to-be-conquered districts"
+                borda_conquer -= 1
+                self.borda_decrease(borda_conquer)
+            if (found_neighbour == False):
+                print "no neighbour found"
+
+    # decreases by one the number of districts to be conquered if the algorithm can't conquer all of those possible
+    def borda_decrease(self, borda_conquer):
+        scores_in_dists = np.array([dist.get_borda('a') for dist in self.dist_list])
+        ranks = scores_in_dists.argsort()[::-1]
+        for i in range(self.districts):
+            self.dist_list[i].set_conquer(False)
+        for i in range(borda_conquer):
+            self.dist_list[ranks[i]].set_conquer(True)
 
     # divides the neighbour voters of a district in groups from the best the district could get to the worst, then asks the neighbour's district
     # and the grid if any of the voters can be exchanged
@@ -292,7 +305,7 @@ class Grid:
     def borda_conquer(self):
         points = rule_borda(self.profile())['a']
         points_to_win_a_dist = int(((self.size * self.size * 3) / self.districts) / 3) + 1
-        borda_conquer = int(points / points_to_win_a_dist)
+        borda_conquer = min(int(points / points_to_win_a_dist), self.districts)
         return borda_conquer
 
     # prints the results of the borda run
@@ -302,7 +315,7 @@ class Grid:
         percentage = round(rule_borda(self.profile())['a'] / float(self.size * self.size * 2), 2)
         borda_conquer = self.borda_conquer()
         print('the gerrimanderer has conquered ' + str(len(conquered_districts)) + ' districts out of ' + str(self.districts) 
-                    + ' when ' + str(min(borda_conquer, self.districts)) + ' were possible')
+                    + ' when ' + str(borda_conquer) + ' were possible')
         print('the gerrimanderer has achieved a percentage of ' + str(dist_percentage) + ' instead of ' + str(percentage))
 
         return (percentage, dist_percentage)
@@ -313,8 +326,6 @@ class Grid:
         cope_conquer = self.cope_conquer()
         scores_in_dists = np.array([dist.get_cope('ab') + dist.get_cope('ac') for dist in self.dist_list])
         ranks = scores_in_dists.argsort()[::-1]
-        # if cope_conquer / float(self.districts) > 0.5:
-        #     cope_conquer -= 1
         for i in range(min(cope_conquer, self.districts)):
             self.dist_list[ranks[i]].set_conquer(True)
         first_dist = random.choice(self.dist_list)
@@ -324,6 +335,21 @@ class Grid:
         while found_neighbour and (self.cope_victory(cope_conquer) == False) and (iteration < max_iterations):
             found_neighbour, new_district, old_district, last_voter = self.cope_step(new_district, old_district)
             iteration += 1
+            if (iteration % 100) == 0 and (self.cope_victory(cope_conquer) == False):
+                print "decreased the number of to-be-conquered districts"
+                cope_conquer -= 1
+                self.cope_decrease(cope_conquer)
+            if (found_neighbour == False):
+                print "no neighbour found"
+
+    # decreases by one the number of districts to be conquered if the algorithm can't conquer all of those possible
+    def cope_decrease(self, cope_conquer):
+        scores_in_dists = np.array([dist.get_cope('ab') + dist.get_cope('ac') for dist in self.dist_list])
+        ranks = scores_in_dists.argsort()[::-1]
+        for i in range(self.districts):
+            self.dist_list[i].set_conquer(False)
+        for i in range(cope_conquer):
+            self.dist_list[ranks[i]].set_conquer(True)
 
     # divides the neighbour voters of a district in groups from the best the district could get to the worst, then asks the neighbour's district
     # and the grid if any of the voters can be exchanged
@@ -404,8 +430,8 @@ class Grid:
     def cope_conquer(self):
         points = rule_borda(self.profile())['a']
         points_to_win_a_dist = int(((self.size * self.size * 3) / self.districts) / 3) + 1
-        borda_conquer = int(points / points_to_win_a_dist)
-        return borda_conquer
+        cope_conquer = min(int(points / points_to_win_a_dist), self.districts)
+        return cope_conquer
 
     # prints the results of the copeland run
     def cope_results(self):
@@ -414,7 +440,7 @@ class Grid:
         percentage = round(rule_borda(self.profile())['a'] / float(self.size * self.size * 2), 2)
         cope_conquer = self.cope_conquer()
         print('the gerrimanderer has conquered ' + str(len(conquered_districts)) + ' districts out of ' + str(self.districts) 
-                    + ' when ' + str(min(cope_conquer, self.districts)) + ' were possible')
+                    + ' when ' + str(cope_conquer) + ' were possible')
         print('the gerrimanderer has achieved a percentage of ' + str(dist_percentage) + ' instead of ' + str(percentage))
 
         return (percentage, dist_percentage)
@@ -488,8 +514,8 @@ class Grid:
         for x in range(self.size):
             for y in range(self.size):
                 color = 'black'
-                if self.dist_list[self.grid[x][y].get_district()].get_conquer():
-                    color = 'green'
+                # if self.dist_list[self.grid[x][y].get_district()].get_conquer():
+                #     color = 'green'
                 if self.rule == 'plurality':
                     if self.dist_list[self.grid[x][y].get_district()].plur_victory():
                         color = 'red'
