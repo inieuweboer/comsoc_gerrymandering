@@ -743,21 +743,21 @@ def plur_again(grid):
 
 def main():
 
-    # Create the grid
-    grid = Grid(12, 6, [33,33,33], True, False)
-    if True:
-        print('hotspots:')
-        print grid.hotspots
+    # # Create the grid
+    # grid = Grid(12, 6, [33,33,33], True, False)
+    # if True:
+    #     print('hotspots:')
+    #     print grid.hotspots
 
-    # Run the algorithm
-    run_plurality(grid)
-    # run_borda(grid)
-    # run_copeland(grid)
-    grid.print_map()
+    # # Run the algorithm
+    # run_plurality(grid)
+    # # run_borda(grid)
+    # # run_copeland(grid)
+    # grid.print_map()
 
-    new_grid = plur_again(grid)
+    # new_grid = plur_again(grid)
 
-    new_grid.print_map()
+    # new_grid.print_map()
 
     # percentages = range(1, 101)
 

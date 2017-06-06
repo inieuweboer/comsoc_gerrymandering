@@ -39,9 +39,22 @@ def plur_again(grid):
 def main():
     show = True
 
+    size = 12
+    districts = 6
+    percentages = [33,33,33]
+    hotspot_on = False
+    proportion_limit = False
+
+    # ___ITERATED EXPERIMENTS___
+    # for i in range(5):
+    #     grid = Grid(size, districts, percentages, hotspot_on, proportion_limit)
+    #     # run_copeland(grid)
+    #     run_plurality(grid)
+
+    # ___SINGLE EXPERIMENT___
     # Create the grid
-    grid = Grid(12, 6, [33,33,33], True, False)
-    if True:
+    grid = Grid(size, districts, percentages, hotspot_on, proportion_limit)
+    if hotspot_on:
         print('hotspots:')
         print grid.hotspots
 
@@ -49,11 +62,12 @@ def main():
     run_plurality(grid)
     # run_borda(grid)
     # run_copeland(grid)
+
     grid.prepare_map()
 
-    new_grid = plur_again(grid)
-
-    new_grid.prepare_map()
+    # Run again with same districts and same hotspots
+    # new_grid = plur_again(grid)
+    # new_grid.prepare_map()
 
     if show:
         plt.show()
@@ -61,6 +75,7 @@ def main():
         plt.savefig(destination)
 
 
+    # ___MULTIPLE EXPERIMENTS___
     # percentages = range(1, 101)
 
     # districts = 6

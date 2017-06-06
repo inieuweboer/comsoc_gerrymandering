@@ -129,6 +129,19 @@ class Grid:
                 and self.dist_list[neighbour.get_district()].get_conquer()])
             neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a' and neighbour.get(1) == dist.plur_first()
                 and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+            # ___PRIORATIZE NON TBC___
+            # neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
+            #     and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+            # neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) == 'a' 
+            #     and self.dist_list[neighbour.get_district()].get_conquer()])
+            # neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a' and neighbour.get(1) != dist.plur_first()
+            #     and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+            # neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a' and neighbour.get(1) == dist.plur_first()
+            #     and (self.dist_list[neighbour.get_district()].get_conquer() == False)])
+            # neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a' and neighbour.get(1) != dist.plur_first()
+            #     and self.dist_list[neighbour.get_district()].get_conquer()])
+            # neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a' and neighbour.get(1) == dist.plur_first()
+            #     and self.dist_list[neighbour.get_district()].get_conquer()])
         else:
             neighbours_by_type.append([neighbour for neighbour in neighbours if neighbour.get(1) != 'a'
                 and self.dist_list[neighbour.get_district()].plur_first() == neighbour.get(1)
@@ -286,7 +299,7 @@ class Grid:
     def borda_results(self):
         conquered_districts = [dist for dist in self.dist_list if dist.borda_victory()]
         dist_percentage = round(len(conquered_districts) / float(self.districts), 2)
-        percentage = round(rule_borda(self.profile())['a'] / float(self.size * self.size * 3), 2)
+        percentage = round(rule_borda(self.profile())['a'] / float(self.size * self.size * 2), 2)
         borda_conquer = self.borda_conquer()
         print('the gerrimanderer has conquered ' + str(len(conquered_districts)) + ' districts out of ' + str(self.districts) 
                     + ' when ' + str(min(borda_conquer, self.districts)) + ' were possible')
@@ -398,7 +411,7 @@ class Grid:
     def cope_results(self):
         conquered_districts = [dist for dist in self.dist_list if dist.cope_victory()]
         dist_percentage = round(len(conquered_districts) / float(self.districts), 2)
-        percentage = round(rule_borda(self.profile())['a'] / float(self.size * self.size * 3), 2)
+        percentage = round(rule_borda(self.profile())['a'] / float(self.size * self.size * 2), 2)
         cope_conquer = self.cope_conquer()
         print('the gerrimanderer has conquered ' + str(len(conquered_districts)) + ' districts out of ' + str(self.districts) 
                     + ' when ' + str(min(cope_conquer, self.districts)) + ' were possible')
@@ -475,6 +488,8 @@ class Grid:
         for x in range(self.size):
             for y in range(self.size):
                 color = 'black'
+                if self.dist_list[self.grid[x][y].get_district()].get_conquer():
+                    color = 'green'
                 if self.rule == 'plurality':
                     if self.dist_list[self.grid[x][y].get_district()].plur_victory():
                         color = 'red'
