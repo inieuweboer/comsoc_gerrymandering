@@ -33,7 +33,7 @@ class District:
 
     # returns the plurality winner of the district
     def plur_first(self):
-        plurality = rule_plurality(self.voters)
+        plurality = Plurality.calculate_score(self.voters)
         return max(plurality.iteritems(), key=operator.itemgetter(1))[0]
 
     # gives the permission to remove a voter if his vote is not necessary to conquer the district under plurality
@@ -52,7 +52,7 @@ class District:
 
     # runs the plurality rule restricted to the voters belonging to the district
     def get_plurality(self, alternative):
-        return rule_plurality(self.voters)[alternative]
+        return Plurality.calculate_score(self.voters)[alternative]
 
     # returns the borda winner of the district
     def borda_first(self):
