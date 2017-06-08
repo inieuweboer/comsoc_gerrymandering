@@ -31,55 +31,6 @@ class District:
     def get_conquer(self):
         return self.conquer
 
-    # returns the plurality winner of the district
-    def plur_first(self):
-        plurality = Plurality.calculate_score(self.voters)
-        return max(plurality.iteritems(), key=operator.itemgetter(1))[0]
-
-    # gives the permission to remove a voter if his vote is not necessary to conquer the district under plurality
-    def plur_ask(self, voter):
-        permission = True
-        if self.conquer and voter.get(1) == 'a' and (self.get_plurality('a') <= (self.get_plurality('b')+1) or self.get_plurality('a') <= (self.get_plurality('c')+1)):
-            permission = False
-        return permission
-
-    # checks if the district has been conquered under plurality
-    def plur_victory(self):
-        victory = False
-        if self.get_plurality('a') > self.get_plurality('b') and self.get_plurality('a') > self.get_plurality('c'):
-            victory = True
-        return victory
-
-    # runs the plurality rule restricted to the voters belonging to the district
-    def get_plurality(self, alternative):
-        return Plurality.calculate_score(self.voters)[alternative]
-
-    # returns the borda winner of the district
-    def borda_first(self):
-        borda = rule_borda(self.voters)
-        return max(borda.iteritems(), key=operator.itemgetter(1))[0]
-
-    # gives the permission to remove a voter if his vote is not necessary to conquer the district under borda
-    def borda_ask(self, voter):
-        permission = True
-        if self.conquer and voter.get(1) == 'a' and (self.get_borda('a') <= (self.get_borda('b')+2) or self.get_borda('a') <= (self.get_borda('c')+2)):
-            permission = False
-        # this second condition ensures that if the voter ranks the non-a alternative that is winning the district last he does not get removed from the district
-        if self.conquer and voter.get(3) != 'a' and voter.get(3) == self.borda_first() and (self.get_borda('a') <= (self.get_borda('b')+2) or self.get_borda('a') <= (self.get_borda('c')+2)):
-            permission = False
-        return permission
-
-    # checks if the district has been conquered under borda
-    def borda_victory(self):
-        victory = False
-        if self.get_borda('a') > self.get_borda('b') and self.get_borda('a') > self.get_borda('c'):
-            victory = True
-        return victory
-
-    # runs the borda rule restricted to the voters belonging to the district
-    def get_borda(self, alternative):
-        return rule_borda(self.voters)[alternative]
-
     # returns the alternative that is more likely to win the district under copeland
     def cope_first(self):
         copeland = rule_copeland(self.voters)

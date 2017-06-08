@@ -47,13 +47,11 @@ def main():
     hotspot_on = True
     proportion_limit = False
 
-    plur = Plurality()
-
     # ___ITERATED EXPERIMENTS___
 
     for i in range(5):
         grid = Grid(size, districts, percentages, hotspot_on, proportion_limit)
-        plur.run_gerry(grid)
+        Plurality(grid).run_gerry()
         # run_borda(grid)
         # run_copeland(grid)
     grid.prepare_map()
