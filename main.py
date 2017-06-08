@@ -7,37 +7,21 @@ from rules import *
 
 
 
-def run_plurality(grid):
-    print('plurality score:')
-    print rule_plurality(grid.profile())
-    districts = grid.plur_gerry()
-    return grid.plur_results()
-
-def run_borda(grid):
-    print('borda score:')
-    print rule_borda(grid.profile())
-    grid.borda_gerry()
-    return grid.borda_results()
-
-def run_copeland(grid):
-    print('copeland score:')
-    print rule_copeland(grid.profile())
-    grid.cope_gerry()
-    return grid.cope_results()
-
-def plur_again(grid):
+def plur_again(grid, rule):
     districts = grid.dist_list[:]
     new_grid = Grid(12, 6, [33,33,33], True, False, grid.hotspots)
     new_grid.set_districts(districts)
     new_grid.set_rule('plurality')
     print('plurality score:')
-    print rule_plurality(new_grid.profile())
-    new_grid.plur_results()
+    print rule.calculate_score(new_grid.profile())
+    rule.results(grid) #new_grid.plur_results()
     return new_grid
 
 
 def main():
     show = True
+    save = False
+    destination = "graphs/"
 
     size = 12
     districts = 6
@@ -49,9 +33,10 @@ def main():
 
     for i in range(5):
         grid = Grid(size, districts, percentages, hotspot_on, proportion_limit)
-        run_plurality(grid)
+        Copeland(grid, 'a').run_gerry()
         # run_borda(grid)
         # run_copeland(grid)
+    grid.prepare_map()
 
     # ____________________ SINGLE EXPERIMENT WITH MAP ____________________
 
@@ -72,10 +57,10 @@ def main():
     # # new_grid = plur_again(grid)
     # # new_grid.prepare_map()
 
-    # if show:
-    #     plt.show()
-    # else:
-    #     plt.savefig(destination)
+    if show:
+        plt.show()
+    else:
+        plt.savefig(destination)
 
 
     # ____________________ MULTIPLE EXPERIMENTS ____________________
