@@ -67,7 +67,9 @@ class Rule:
         # the neighbours considered must not belong to the previous active district that took a voter from the current one
         found_neighbour = False
 
-        neighbours_by_type = self.get_neighbours_by_type(dist_no, last_dist_no)
+        neighbours = [neighbour for neighbour in self.grid.dist_neighbours(dist) if neighbour.get_district() != last_dist_no]
+
+        neighbours_by_type = self.get_neighbours_by_type(neighbours, dist_no, last_dist_no)
 
         all_neighbours = []
         for neighbour_group in neighbours_by_type:
@@ -84,9 +86,8 @@ class Rule:
 
         return found_neighbour, neighbour_dist_no, dist.get_number(), neighbour
 
-    def get_neighbours_by_type(self, dist_no, last_dist_no):
+    def get_neighbours_by_type(self, neighbours, dist_no, last_dist_no):
         dist = self.grid.dist_list[dist_no]
-        neighbours = [neighbour for neighbour in self.grid.dist_neighbours(dist) if neighbour.get_district() != last_dist_no]
         neighbours_by_type = []
 
         # ...
@@ -152,9 +153,8 @@ class Plurality(Rule):
             score[voter.get(1)] += 1
         return score
 
-    def get_neighbours_by_type(self, dist_no, last_dist_no):
+    def get_neighbours_by_type(self, neighbours, dist_no, last_dist_no):
         dist = self.grid.dist_list[dist_no]
-        neighbours = [neighbour for neighbour in self.grid.dist_neighbours(dist) if neighbour.get_district() != last_dist_no]
         neighbours_by_type = []
         # the following division in groups is based on three conditions. 1) The preference of the neighbour being 'a'. 2) The neighbour's district being to-be-conquered or not. 3) the neighbour's first preference is not a and is the one that's winning in the acquiring district
         if dist.get_conquer():
@@ -213,9 +213,8 @@ class Borda(Rule):
             score[voter.get(2)] += 1
         return score
 
-    def get_neighbours_by_type(self, dist_no, last_dist_no):
+    def get_neighbours_by_type(self, neighbours, dist_no, last_dist_no):
         dist = self.grid.dist_list[dist_no]
-        neighbours = [neighbour for neighbour in self.grid.dist_neighbours(dist) if neighbour.get_district() != last_dist_no]
         neighbours_by_type = []
         # the following division in groups is based on three conditions. 1) The position of alternative 'a' in the neighbour's preference order. 2) The neighbour's district being to-be-conquered or not. 3) the neighbour's first preference is not a and is the one that's winning in the acquiring district
         if dist.get_conquer():
